@@ -7,7 +7,7 @@ import { useDashboard } from "@/components/console/dashboard-provider";
 const AVG_MINUTES_SAVED_PER_CALL = 4.2;
 
 export default function OverviewPage() {
-  const { connected, tenant, counters } = useDashboard();
+  const { status, tenant, counters } = useDashboard();
 
   const hoursSaved = (counters.calls_answered * AVG_MINUTES_SAVED_PER_CALL) / 60;
   const today = new Date().toLocaleDateString("en-US", {
@@ -41,11 +41,7 @@ export default function OverviewPage() {
           label="Total Calls Answered"
           value={counters.calls_answered}
           sub={
-            connected ? (
-              <>Every inbound conversation, voice + WhatsApp</>
-            ) : (
-              "—"
-            )
+            status === "offline" ? "—" : <>Every inbound conversation, voice + WhatsApp</>
           }
         />
         <KpiCard

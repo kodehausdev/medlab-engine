@@ -44,8 +44,16 @@ function rowFor(ev: DashboardEvent) {
   };
 }
 
+const EMPTY_TEXT: Record<string, string> = {
+  "engine-live": "Waiting for the first call — events appear here in real time.",
+  "engine-unlinked":
+    "No events yet. Your phone line isn't provisioned on the engine — history from the audit trail will appear here as calls happen.",
+  offline: "Engine offline. Start medlab-engine and this feed reconnects automatically.",
+  connecting: "Connecting…",
+};
+
 export function LiveFeed() {
-  const { connected, events } = useDashboard();
+  const { status, events } = useDashboard();
 
   return (
     <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -72,9 +80,7 @@ export function LiveFeed() {
 
       {events.length === 0 ? (
         <div className="px-4.5 py-10 text-center text-sm text-slate-400">
-          {connected
-            ? "Waiting for the first call — events appear here in real time."
-            : "Engine offline. Start medlab-engine and this feed reconnects automatically."}
+          {EMPTY_TEXT[status]}
         </div>
       ) : (
         events.map((ev) => {

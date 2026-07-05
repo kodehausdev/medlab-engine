@@ -32,10 +32,38 @@ function FlaskLogo() {
   );
 }
 
+const BADGE = {
+  "engine-live": {
+    box: "border-emerald-500/40 bg-emerald-500/15",
+    dot: "bg-emerald-400 [animation:pulse-dot_1.6s_ease-in-out_infinite]",
+    text: "text-emerald-300",
+    label: "ENGINE LIVE",
+  },
+  "engine-unlinked": {
+    box: "border-amber-500/40 bg-amber-500/10",
+    dot: "bg-amber-400",
+    text: "text-amber-300",
+    label: "LINE NOT PROVISIONED",
+  },
+  offline: {
+    box: "border-slate-600 bg-slate-800",
+    dot: "bg-slate-500",
+    text: "text-slate-400",
+    label: "ENGINE OFFLINE",
+  },
+  connecting: {
+    box: "border-slate-600 bg-slate-800",
+    dot: "bg-slate-500 [animation:pulse-dot_1.2s_ease-in-out_infinite]",
+    text: "text-slate-400",
+    label: "CONNECTING…",
+  },
+} as const;
+
 export function ConsoleHeader() {
   const pathname = usePathname();
-  const { connected, tenant } = useDashboard();
+  const { status, tenant } = useDashboard();
   const { user, signOut } = useAuth();
+  const badge = BADGE[status];
   const initials = (user?.email ?? "dev")
     .split("@")[0]
     .split(/[._-]/)
@@ -80,27 +108,11 @@ export function ConsoleHeader() {
 
         <div className="ml-auto flex items-center gap-3.5">
           <div
-            className={
-              connected
-                ? "flex items-center gap-2 rounded-full border border-emerald-500/40 bg-emerald-500/15 px-3 py-1.5"
-                : "flex items-center gap-2 rounded-full border border-slate-600 bg-slate-800 px-3 py-1.5"
-            }
+            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 ${badge.box}`}
           >
-            <span
-              className={
-                connected
-                  ? "size-1.5 rounded-full bg-emerald-400 [animation:pulse-dot_1.6s_ease-in-out_infinite]"
-                  : "size-1.5 rounded-full bg-slate-500"
-              }
-            />
-            <span
-              className={
-                connected
-                  ? "font-mono text-[11px] font-semibold text-emerald-300"
-                  : "font-mono text-[11px] font-semibold text-slate-400"
-              }
-            >
-              {connected ? "ENGINE LIVE" : "ENGINE OFFLINE"}
+            <span className={`size-1.5 rounded-full ${badge.dot}`} />
+            <span className={`font-mono text-[11px] font-semibold ${badge.text}`}>
+              {badge.label}
             </span>
           </div>
           <div
