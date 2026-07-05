@@ -1,8 +1,17 @@
 import type { ReactNode } from "react";
+import { AuthGate } from "@/components/auth/auth-gate";
 import { DashboardProvider } from "@/components/console/dashboard-provider";
 import { ConsoleHeader } from "@/components/console/console-header";
 
 export default function ConsoleLayout({ children }: { children: ReactNode }) {
+  return (
+    <AuthGate>
+      <ConsoleShell>{children}</ConsoleShell>
+    </AuthGate>
+  );
+}
+
+function ConsoleShell({ children }: { children: ReactNode }) {
   return (
     <DashboardProvider>
       <div className="flex min-h-screen flex-col">

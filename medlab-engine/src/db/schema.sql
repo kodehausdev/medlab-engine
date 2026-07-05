@@ -56,15 +56,42 @@ create index if not exists idx_audit_events_tenant_time
 -- Console realtime: stream INSERTs to subscribed dashboards.
 alter publication supabase_realtime add table audit_events;
 
--- ── Row-level security ────────────────────────────────────────
--- The engine writes with the service-role key (bypasses RLS). The console
--- currently reads with the anon key: permissive read-only policies below are
--- a DEV posture — replace with tenant-scoped policies (JWT tenant_id claim)
--- at the Auth milestone, before any real lab's data lands here.
+-- ── Auth + row-level security ─────────────────────────────────
+-- The engine writes with the service-role key (bypasses RLS). Console users
+-- sign in with Supabase Auth and read only their own tenant's rows via the
+-- profiles mapping below. The anon key can read nothing.
+-- (Existing databases: apply migrations/0002_auth_tenant_rls.sql instead.)
+
+create table if not exists profiles (
+  user_id uuid primary key references auth.users(id) on delete cascade,
+  tenant_id text not null references tenants(id),
+  role text not null default 'staff',     -- 'owner' | 'staff'
+  created_at timestamptz default now()
+);
+
+create or replace function public.user_tenant_id()
+returns text
+language sql stable security definer
+set search_path = public
+as $$
+  select tenant_id from profiles where user_id = auth.uid()
+$$;
+
+revoke execute on function public.user_tenant_id() from anon;
+
 alter table tenants enable row level security;
 alter table appointments enable row level security;
 alter table audit_events enable row level security;
+alter table profiles enable row level security;
 
-create policy "dev read tenants" on tenants for select using (true);
-create policy "dev read appointments" on appointments for select using (true);
-create policy "dev read audit_events" on audit_events for select using (true);
+create policy "read own profile" on profiles
+  for select to authenticated using (user_id = (select auth.uid()));
+create policy "tenant members read their tenant" on tenants
+  for select to authenticated using (id = public.user_tenant_id());
+create policy "tenant members read their appointments" on appointments
+  for select to authenticated using (tenant_id = public.user_tenant_id());
+create policy "tenant members read their audit trail" on audit_events
+  for select to authenticated using (tenant_id = public.user_tenant_id());
+
+-- No insert/update/delete policies on purpose: the console is read-only;
+-- all writes go through the engine on the service role.
