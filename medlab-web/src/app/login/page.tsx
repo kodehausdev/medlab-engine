@@ -116,7 +116,13 @@ export default function LoginPage() {
           )}
         </div>
 
-        <p className="mt-4 text-center font-mono text-[10.5px] text-slate-400">
+        <p className="mt-4 text-center text-xs text-slate-500">
+          Setting up a new lab?{" "}
+          <a href="/signup" className="font-semibold text-indigo-700 hover:underline">
+            Start your subscription →
+          </a>
+        </p>
+        <p className="mt-3 text-center font-mono text-[10.5px] text-slate-400">
           TENANT-SCOPED ACCESS · ENFORCED BY ROW-LEVEL SECURITY
         </p>
       </div>

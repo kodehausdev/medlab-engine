@@ -11,6 +11,9 @@ create table if not exists tenants (
   close_hour int default 17,
   slot_capacity int default 2,
   plan text default 'standard',           -- $297/mo standard
+  stripe_customer_id text,
+  stripe_subscription_id text,
+  subscription_status text default 'incomplete',  -- incomplete | active | past_due | canceled
   created_at timestamptz default now()
 );
 
