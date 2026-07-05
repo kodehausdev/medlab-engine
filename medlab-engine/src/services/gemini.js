@@ -96,7 +96,9 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
    */
   async function runTurn(session, userText, ctx = {}) {
     const todayISO = (ctx.now || new Date()).toISOString().split('T')[0];
-    const systemInstruction = buildSystemPrompt(tenant, todayISO);
+    // Multi-tenant: the conversation's tenant rides in ctx; the constructor
+    // tenant is the single-tenant fallback.
+    const systemInstruction = buildSystemPrompt(ctx.tenant || tenant, todayISO);
 
     session.history.push({ role: 'user', parts: [{ text: userText }] });
     compressHistory(session);

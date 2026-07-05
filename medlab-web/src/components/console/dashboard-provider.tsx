@@ -88,10 +88,13 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     let disposed = false;
     let dbMode = false;
     let engineAdopted = false;
-    const es = new EventSource(`${ENGINE_URL}/api/dashboard/events`);
+    // Multi-tenant engine: scope the stream to our tenant when signed in.
+    const scope = authTenant ? `?tenant=${encodeURIComponent(authTenant.id)}` : "";
+    const es = new EventSource(`${ENGINE_URL}/api/dashboard/events${scope}`);
 
     const ingest = (ev: DashboardEvent) => {
       if (disposed || dbMode) return;
+      if (authTenant && ev.tenant_id !== authTenant.id) return;
       setEvents((prev) => {
         if (prev.some((e) => e.id === ev.id)) return prev;
         return [ev, ...prev].slice(0, 100);
@@ -167,12 +170,17 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
     es.onopen = async () => {
       try {
-        const res = await fetch(`${ENGINE_URL}/api/dashboard/state`);
+        const res = await fetch(`${ENGINE_URL}/api/dashboard/state${scope}`);
+        // 404 = this tenant has no line provisioned on the engine.
+        if (!res.ok) {
+          fallBackToDb();
+          return;
+        }
         const state: EngineState = await res.json();
         if (disposed) return;
         setEngineTenant(state.tenant);
 
-        // The engine is single-tenant: only adopt its feed if it's OUR tenant.
+        // Belt and braces: never adopt a feed for a different tenant.
         if (authTenant && state.tenant.id !== authTenant.id) {
           fallBackToDb();
           return;

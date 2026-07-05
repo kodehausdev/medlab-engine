@@ -502,7 +502,117 @@ test('dashboard: every event is persisted as a durable audit row', async () => {
 });
 
 // ══════════════════════════════════════════════════════════════
-// 7. AUDIO CODEC — μ-law round trip sanity for the Live bridge
+// 7. MULTI-TENANT ROUTING — inbound To number → tenant
+// ══════════════════════════════════════════════════════════════
+const LAB2 = {
+  id: 'lab2',
+  labName: 'Lakeside Labs',
+  timezone: 'America/Chicago',
+  openHour: 9,
+  closeHour: 18,
+  slotCapacity: 1,
+  whatsappNumber: '+15550002222',
+};
+
+function twoTenantStore() {
+  const store = createMemoryStore();
+  store.getTenantByNumber = async (number) =>
+    number === LAB2.whatsappNumber ? LAB2 : null;
+  store.getTenantById = async (id) => (id === LAB2.id ? LAB2 : null);
+  return store;
+}
+
+test('routing: the To number selects the tenant; unmatched falls back to default', async () => {
+  const store = twoTenantStore();
+  // Two independent booking conversations, one scripted model per tenant.
+  const s1 = alexBookingScript();
+  const s2 = alexBookingScript();
+  let active = s1;
+  const gen = async (contents, sys) => active(contents, sys);
+
+  const engine = createEngine({ store, tenant: TENANT, generateFn: gen, now: NOW });
+
+  // Caller texts LAB2's WhatsApp sender.
+  const r1 = await engine.processTurn({
+    channel: 'whatsapp',
+    from: `whatsapp:${CALLER}`,
+    to: `whatsapp:${LAB2.whatsappNumber}`,
+    text: ALEX_UTTERANCE,
+  });
+  assert.equal(r1.tenant.id, 'lab2');
+  assert.match(r1.reply, /Lipid Panel/);
+
+  // Same caller texts an unknown number → default tenant.
+  active = s2;
+  const r2 = await engine.processTurn({
+    channel: 'whatsapp',
+    from: `whatsapp:${CALLER}`,
+    to: 'whatsapp:+19999999999',
+    text: ALEX_UTTERANCE,
+  });
+  assert.equal(r2.tenant.id, 'test-lab');
+
+  // Each booking landed under its own tenant.
+  const byTenant = Object.groupBy
+    ? Object.groupBy(store.appointments, (a) => a.tenant_id)
+    : store.appointments.reduce((m, a) => ((m[a.tenant_id] ||= []).push(a), m), {});
+  assert.equal(byTenant.lab2.length, 1);
+  assert.equal(byTenant['test-lab'].length, 1);
+
+  // Sessions are isolated per tenant (same caller, two conversations).
+  assert.equal(r1.session !== r2.session, true);
+
+  // System prompts carried each lab's own identity.
+  assert.match(s1.seen[0].systemInstruction, /Lakeside Labs/);
+  assert.match(s2.seen[0].systemInstruction, /BrightPath Diagnostics/);
+
+  // Events are tenant-tagged with scoped counters.
+  assert.equal(engine.events.snapshot('lab2').counters.bookings_confirmed, 1);
+  assert.equal(engine.events.snapshot('test-lab').counters.bookings_confirmed, 1);
+  assert.equal(engine.events.snapshot().counters.bookings_confirmed, 2);
+});
+
+test('routing: dashboard state + SSE are tenant-scoped; unknown tenant is 404', async () => {
+  const store = twoTenantStore();
+  const engine = createEngine({ store, tenant: TENANT, generateFn: alexBookingScript(), now: NOW });
+  const bundle = createApp({ engine });
+  const { server, port } = await startServer(bundle);
+
+  try {
+    await engine.processTurn({
+      channel: 'whatsapp',
+      from: `whatsapp:${CALLER}`,
+      to: `whatsapp:${LAB2.whatsappNumber}`,
+      text: ALEX_UTTERANCE,
+    });
+
+    const scoped = await (await fetch(`http://127.0.0.1:${port}/api/dashboard/state?tenant=lab2`)).json();
+    assert.equal(scoped.tenant.lab_name, 'Lakeside Labs');
+    assert.equal(scoped.counters.bookings_confirmed, 1);
+    assert.ok(scoped.recent.every(e => e.tenant_id === 'lab2'));
+
+    const missing = await fetch(`http://127.0.0.1:${port}/api/dashboard/state?tenant=nope`);
+    assert.equal(missing.status, 404);
+
+    // Scoped SSE replays only lab2 events.
+    const controller = new AbortController();
+    const sse = await fetch(`http://127.0.0.1:${port}/api/dashboard/events?tenant=lab2`, {
+      signal: controller.signal,
+    });
+    const { hit, events } = await readSseUntil(
+      sse.body.getReader(),
+      e => e.type === 'booking.confirmed'
+    );
+    assert.ok(events.every(e => e.tenant_id === 'lab2'));
+    assert.equal(hit.data.patient_name, 'Alex');
+    controller.abort();
+  } finally {
+    server.close();
+  }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 8. AUDIO CODEC — μ-law round trip sanity for the Live bridge
 // ══════════════════════════════════════════════════════════════
 test('codec: mu-law encode/decode round trip stays within tolerance', () => {
   for (const s of [0, 500, -500, 8000, -8000, 30000, -30000]) {

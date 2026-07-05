@@ -33,11 +33,13 @@ function buildDaySlots(tenant) {
 
 /**
  * createToolHandlers({ store, tenant, events }) → { execute(name, args, ctx) }
- * ctx carries per-conversation facts the model shouldn't have to restate,
- * e.g. the caller's phone number from Twilio caller ID.
+ * ctx carries per-conversation facts the model shouldn't have to restate:
+ * the caller's phone from Twilio caller ID, and — multi-tenant — the tenant
+ * this conversation belongs to (ctx.tenant; the constructor tenant is the
+ * single-tenant fallback).
  * events (optional) is the dashboard bus from services/events.
  */
-function createToolHandlers({ store, tenant, events }) {
+function createToolHandlers({ store, tenant: defaultTenant, events }) {
   const bus = events || { emit: () => {} };
   const handlers = {
     async list_available_tests() {
@@ -46,7 +48,8 @@ function createToolHandlers({ store, tenant, events }) {
       };
     },
 
-    async check_availability(args) {
+    async check_availability(args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
       const { date, time_slot } = args;
       if (!DATE_RE.test(date || '')) {
         return { error: 'Invalid date. Expected YYYY-MM-DD.' };
@@ -75,6 +78,7 @@ function createToolHandlers({ store, tenant, events }) {
     },
 
     async book_appointment(args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
       const { patient_name, phone_number, test_type, date, time_slot } = args;
 
       if (!DATE_RE.test(date || '')) return { error: 'Invalid date. Expected YYYY-MM-DD.' };
@@ -115,7 +119,7 @@ function createToolHandlers({ store, tenant, events }) {
       const saved = await store.insertAppointment(record);
       safeLog(`✅ Booking #${saved.id} — ${canonicalTest} ${date} ${time_slot} [${tenant.id}]`);
 
-      bus.emit('booking.confirmed', { channel: ctx.channel, phone }, {
+      bus.emit('booking.confirmed', { channel: ctx.channel, phone, tenantId: tenant.id }, {
         booking_id: saved.id,
         patient_name: record.patient_name,
         test_type: canonicalTest,
@@ -158,7 +162,11 @@ function createToolHandlers({ store, tenant, events }) {
           safeLog(`🛡️ ComplianceError in ${name}: ${err.message}`);
           // Dashboard event carries only the fact of interception — no caller
           // content, no matched term (see services/events.js).
-          bus.emit('guardrail.redacted', { channel: ctx?.channel, phone: ctx?.callerPhone }, {
+          bus.emit('guardrail.redacted', {
+            channel: ctx?.channel,
+            phone: ctx?.callerPhone,
+            tenantId: ctx?.tenant?.id || defaultTenant?.id,
+          }, {
             tool: name,
             code: err.code,
             status: 'guardrail_redacted',

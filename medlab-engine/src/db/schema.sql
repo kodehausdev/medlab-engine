@@ -5,7 +5,8 @@
 create table if not exists tenants (
   id text primary key,                    -- e.g. 'default' or a slug
   lab_name text not null,
-  twilio_number text,                     -- inbound number → tenant routing
+  twilio_number text,                     -- inbound voice number → tenant routing
+  whatsapp_number text,                   -- inbound WA sender → tenant routing
   timezone text default 'America/New_York',
   open_hour int default 8,
   close_hour int default 17,

@@ -13,15 +13,18 @@ function createVoiceRouter({ engine }) {
   const router = express.Router();
   const turnUrl = `${config.publicBaseUrl}/webhook/voice/turn`;
 
-  router.post('/webhook/voice', (req, res) => {
+  router.post('/webhook/voice', async (req, res) => {
+    // The called number identifies the lab (multi-tenant routing).
+    const tenant = await engine.resolveTenant(req.body?.To);
     const greeting =
-      `Thanks for calling ${engine.tenant.labName}. ` +
+      `Thanks for calling ${tenant.labName}. ` +
       `I can book lab appointments — what test do you need, and when?`;
     res.type('text/xml').send(gatherTwiml(greeting, turnUrl));
   });
 
   router.post('/webhook/voice/turn', async (req, res) => {
     const from = req.body?.From || 'unknown';
+    const to = req.body?.To;
     const speech = (req.body?.SpeechResult || '').trim();
 
     if (!speech) {
@@ -31,14 +34,14 @@ function createVoiceRouter({ engine }) {
     }
 
     try {
-      const { reply, bookedNow, session } =
-        await engine.processTurn({ channel: 'voice', from, text: speech });
+      const { reply, bookedNow, session, tenant } =
+        await engine.processTurn({ channel: 'voice', from, to, text: speech });
 
       // After a confirmed booking, deliver the confirmation and end the call
       // on the model's closing turn rather than looping forever.
       if (bookedNow || (session.completed && /goodbye|bye|that's all|no thanks/i.test(speech))) {
         if (session.completed && !bookedNow) {
-          engine.endSession('voice', from);
+          engine.endSession('voice', from, tenant.id);
           return res.type('text/xml').send(sayHangupTwiml(reply));
         }
       }

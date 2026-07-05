@@ -13,9 +13,9 @@ function createWhatsAppRouter({ engine, sendWhatsApp, batchWindowMs = BATCH_WIND
   const processed = new Set();
   const messageQueue = {};
 
-  async function handleTurn(from, text) {
+  async function handleTurn(from, to, text) {
     try {
-      const { reply } = await engine.processTurn({ channel: 'whatsapp', from, text });
+      const { reply } = await engine.processTurn({ channel: 'whatsapp', from, to, text });
       await sendWhatsApp(from, reply);
     } catch (err) {
       safeLog(`❌ WhatsApp turn failed: ${err.message}`);
@@ -30,6 +30,7 @@ function createWhatsAppRouter({ engine, sendWhatsApp, batchWindowMs = BATCH_WIND
     res.sendStatus(200); // ack before processing, Twilio retries otherwise
 
     const from = req.body?.From;
+    const to = req.body?.To; // WA sender the message arrived on → tenant
     const text = req.body?.Body?.trim();
     if (!from || !text) return;
 
@@ -40,14 +41,16 @@ function createWhatsAppRouter({ engine, sendWhatsApp, batchWindowMs = BATCH_WIND
 
     safeLog(`📩 [WA] inbound from ${from}`);
 
-    // Batch rapid consecutive messages (people text in fragments) into one turn.
-    if (!messageQueue[from]) messageQueue[from] = { texts: [], timer: null };
-    messageQueue[from].texts.push(text);
-    if (messageQueue[from].timer) clearTimeout(messageQueue[from].timer);
-    messageQueue[from].timer = setTimeout(() => {
-      const batch = messageQueue[from].texts.join('\n');
-      delete messageQueue[from];
-      handleTurn(from, batch);
+    // Batch rapid consecutive messages (people text in fragments) into one
+    // turn — keyed per (tenant number, sender) so labs never share a batch.
+    const qk = `${to || 'default'}|${from}`;
+    if (!messageQueue[qk]) messageQueue[qk] = { texts: [], timer: null };
+    messageQueue[qk].texts.push(text);
+    if (messageQueue[qk].timer) clearTimeout(messageQueue[qk].timer);
+    messageQueue[qk].timer = setTimeout(() => {
+      const batch = messageQueue[qk].texts.join('\n');
+      delete messageQueue[qk];
+      handleTurn(from, to, batch);
     }, batchWindowMs);
   });
 

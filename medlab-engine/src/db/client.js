@@ -36,6 +36,31 @@ function createMemoryStore() {
         a => a.tenant_id === tenantId && a.date === date && a.status === 'confirmed'
       );
     },
+
+    // Memory store has no tenant table — the engine falls back to its
+    // env-configured default tenant. Tests inject overrides for routing.
+    async getTenantByNumber() {
+      return null;
+    },
+
+    async getTenantById() {
+      return null;
+    },
+  };
+}
+
+// Supabase tenant row → the engine's tenant shape (camelCase).
+function mapTenantRow(row) {
+  if (!row) return null;
+  return {
+    id: row.id,
+    labName: row.lab_name,
+    timezone: row.timezone,
+    openHour: row.open_hour,
+    closeHour: row.close_hour,
+    slotCapacity: row.slot_capacity,
+    twilioNumber: row.twilio_number || null,
+    whatsappNumber: row.whatsapp_number || null,
   };
 }
 
@@ -73,6 +98,24 @@ function createSupabaseStore() {
         .eq('tenant_id', tenantId).eq('date', date).eq('status', 'confirmed');
       if (error) throw new Error(`Supabase select failed: ${error.message}`);
       return data || [];
+    },
+
+    async getTenantByNumber(number) {
+      const { data, error } = await supabase
+        .from('tenants')
+        .select('*')
+        .or(`twilio_number.eq.${number},whatsapp_number.eq.${number}`)
+        .limit(1)
+        .maybeSingle();
+      if (error) throw new Error(`Supabase tenant lookup failed: ${error.message}`);
+      return mapTenantRow(data);
+    },
+
+    async getTenantById(id) {
+      const { data, error } = await supabase
+        .from('tenants').select('*').eq('id', id).maybeSingle();
+      if (error) throw new Error(`Supabase tenant lookup failed: ${error.message}`);
+      return mapTenantRow(data);
     },
   };
 }
