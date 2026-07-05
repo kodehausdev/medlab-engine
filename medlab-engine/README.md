@@ -145,6 +145,43 @@ term. The dashboard renders it instantly as a red **Guardrail Redacted** row.
 > phone tail only), but put this behind auth and a pinned origin before
 > exposing it beyond localhost.
 
+## Deploying (Railway)
+
+The repo is a monorepo — point Railway's service **Root Directory** at
+`medlab-engine/`. `railway.json` configures the `/health` healthcheck;
+Railway injects `PORT`.
+
+Environment variables to set on the service:
+
+| Variable | Value |
+|---|---|
+| `GEMINI_API_KEY` | AI Studio key — see ⚠ below |
+| `GEMINI_USE_VERTEX` | `false` on Railway (see ⚠ below) |
+| `SUPABASE_URL` / `SUPABASE_KEY` | project URL + service-role key |
+| `TWILIO_ACCOUNT_SID` / `TWILIO_AUTH_TOKEN` | account creds |
+| `TWILIO_WHATSAPP_NUMBER` | e.g. `whatsapp:+14155238886` (sandbox) |
+| `TWILIO_VALIDATE_WEBHOOKS` | `true` — rejects requests without a valid `X-Twilio-Signature` |
+| `PUBLIC_BASE_URL` | the Railway domain, e.g. `https://<svc>.up.railway.app` |
+| `TENANT_ID` / `LAB_NAME` / `LAB_*` / `SLOT_CAPACITY` | default-tenant fallback |
+
+Then point the Twilio number's webhooks at
+`{PUBLIC_BASE_URL}/webhook/voice` and `{PUBLIC_BASE_URL}/webhook/whatsapp`.
+
+> ⚠ **Vertex AI off-GCP:** ADC doesn't exist on Railway — Vertex auth there
+> needs a service-account key (blocked by the org policy) or Workload
+> Identity Federation. Until the production GCP org is set up, the Railway
+> deployment uses an AI Studio `GEMINI_API_KEY` (no BAA — sandbox posture).
+> The BAA-grade path is running the engine on Cloud Run with an attached
+> service account, or WIF — both keyless.
+
+### Dashboard API auth
+
+With Supabase configured, `/api/dashboard/*` requires a Supabase user
+access token (`Authorization: Bearer …` or `?token=` for SSE). The engine
+verifies it against Supabase Auth, maps it to the caller's tenant via
+`profiles`, and pins the feed to that tenant — a `?tenant=` for anyone
+else's lab returns 403. Keyless local dev (memory store) stays open.
+
 ## Voice paths
 
 - **Production (verified):** Twilio `<Gather input="speech">` turn loop.

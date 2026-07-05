@@ -12,12 +12,28 @@
 // localhost put it behind auth and pin the allowed origin.
 
 const express = require('express');
+const { createDashboardAuth } = require('../services/dashboardAuth');
 
-function createDashboardRouter({ engine }) {
+function createDashboardRouter({ engine, auth }) {
   const router = express.Router();
+  const dashAuth = auth || createDashboardAuth({ store: engine.store });
 
-  router.use('/api/', (_req, res, next) => {
+  router.use('/api/', async (req, res, next) => {
     res.set('Access-Control-Allow-Origin', '*');
+    res.set('Access-Control-Allow-Headers', 'authorization, content-type');
+    if (req.method === 'OPTIONS') return res.sendStatus(204);
+
+    // Keyless local dev stays open; with Supabase configured, a verified
+    // user token is required and pins the tenant scope.
+    if (dashAuth.open) return next();
+    const result = await dashAuth.resolve(req);
+    if (!result.ok) return res.status(result.status).json({ error: result.error });
+    req.dashboardTenantId = result.tenantId;
+
+    const requested = req.query.tenant ? String(req.query.tenant) : null;
+    if (requested && requested !== result.tenantId) {
+      return res.status(403).json({ error: 'Token is not a member of that tenant.' });
+    }
     next();
   });
 
@@ -36,7 +52,8 @@ function createDashboardRouter({ engine }) {
   // console renders that as "LINE NOT PROVISIONED" and stays on the durable
   // Supabase trail instead.
   router.get('/api/dashboard/state', async (req, res) => {
-    const tenantId = req.query.tenant;
+    // Authed mode: the token decides the scope, whatever the query says.
+    const tenantId = req.dashboardTenantId || req.query.tenant;
     if (!tenantId) {
       const { counters, recent } = engine.events.snapshot();
       return res.json({ tenant: tenantJson(engine.tenant), counters, recent });
@@ -55,7 +72,8 @@ function createDashboardRouter({ engine }) {
   });
 
   router.get('/api/dashboard/events', (req, res) => {
-    const tenantId = req.query.tenant ? String(req.query.tenant) : undefined;
+    const tenantId =
+      req.dashboardTenantId || (req.query.tenant ? String(req.query.tenant) : undefined);
 
     res.set({
       'Content-Type': 'text/event-stream',

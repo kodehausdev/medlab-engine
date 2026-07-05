@@ -46,6 +46,10 @@ function createMemoryStore() {
     async getTenantById() {
       return null;
     },
+
+    async getProfileTenant() {
+      return null;
+    },
   };
 }
 
@@ -116,6 +120,13 @@ function createSupabaseStore() {
         .from('tenants').select('*').eq('id', id).maybeSingle();
       if (error) throw new Error(`Supabase tenant lookup failed: ${error.message}`);
       return mapTenantRow(data);
+    },
+
+    async getProfileTenant(userId) {
+      const { data, error } = await supabase
+        .from('profiles').select('tenant_id').eq('user_id', userId).maybeSingle();
+      if (error) throw new Error(`Supabase profile lookup failed: ${error.message}`);
+      return data ? data.tenant_id : null;
     },
   };
 }

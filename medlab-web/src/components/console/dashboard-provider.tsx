@@ -88,9 +88,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     let disposed = false;
     let dbMode = false;
     let engineAdopted = false;
-    // Multi-tenant engine: scope the stream to our tenant when signed in.
-    const scope = authTenant ? `?tenant=${encodeURIComponent(authTenant.id)}` : "";
-    const es = new EventSource(`${ENGINE_URL}/api/dashboard/events${scope}`);
+    let es: EventSource | null = null;
 
     const ingest = (ev: DashboardEvent) => {
       if (disposed || dbMode) return;
@@ -114,7 +112,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     const fallBackToDb = () => {
       if (disposed || dbMode) return;
       dbMode = true;
-      es.close();
+      es?.close();
       if (authTenant && supabase) {
         setStatus("engine-unlinked");
         void hydrateFromDb();
@@ -168,7 +166,21 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
 
     let cleanupRealtime: (() => void) | null = null;
 
-    es.onopen = async () => {
+    // The deployed engine requires a Supabase user token (?token= because
+    // EventSource can't set headers). Keyless dev sends none — the engine
+    // is open in that mode too. Token also pins the tenant server-side.
+    const setup = async () => {
+      const qs = new URLSearchParams();
+      if (authTenant) qs.set("tenant", authTenant.id);
+      if (supabase && authTenant) {
+        const { data } = await supabase.auth.getSession();
+        if (data.session?.access_token) qs.set("token", data.session.access_token);
+      }
+      if (disposed) return;
+      const scope = qs.size ? `?${qs.toString()}` : "";
+      es = new EventSource(`${ENGINE_URL}/api/dashboard/events${scope}`);
+
+      es.onopen = async () => {
       try {
         const res = await fetch(`${ENGINE_URL}/api/dashboard/state${scope}`);
         // 404 = this tenant has no line provisioned on the engine.
@@ -203,23 +215,26 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       }
     };
 
-    es.onmessage = (m) => {
-      try {
-        ingest(JSON.parse(m.data) as DashboardEvent);
-      } catch {
-        /* ignore malformed frames */
-      }
+      es.onmessage = (m) => {
+        try {
+          ingest(JSON.parse(m.data) as DashboardEvent);
+        } catch {
+          /* ignore malformed frames */
+        }
+      };
+
+      es.onerror = () => {
+        // Never adopted the engine feed → use the durable trail instead.
+        // (Once adopted, EventSource auto-reconnects and onopen re-syncs.)
+        if (!engineAdopted) fallBackToDb();
+      };
     };
 
-    es.onerror = () => {
-      // Never adopted the engine feed → use the durable trail instead.
-      // (Once adopted, EventSource auto-reconnects and onopen re-syncs.)
-      if (!engineAdopted) fallBackToDb();
-    };
+    void setup();
 
     return () => {
       disposed = true;
-      es.close();
+      es?.close();
       if (cleanupRealtime) cleanupRealtime();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps

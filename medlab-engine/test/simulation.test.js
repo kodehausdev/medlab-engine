@@ -612,7 +612,89 @@ test('routing: dashboard state + SSE are tenant-scoped; unknown tenant is 404', 
 });
 
 // ══════════════════════════════════════════════════════════════
-// 8. AUDIO CODEC — μ-law round trip sanity for the Live bridge
+// 8. DASHBOARD AUTH + TWILIO SIGNATURE
+// ══════════════════════════════════════════════════════════════
+test('dashboard auth: 401 without token, 403 for foreign tenant, scoped 200 with token', async () => {
+  const engine = createEngine({
+    store: createMemoryStore(), tenant: TENANT,
+    generateFn: alexBookingScript(), now: NOW,
+  });
+  // Stubbed verifier: token "good" belongs to test-lab.
+  const dashboardAuth = {
+    open: false,
+    resolve: async (req) => {
+      const token = req.query.token ||
+        (req.headers.authorization || '').replace(/^Bearer /, '');
+      return token === 'good'
+        ? { ok: true, tenantId: 'test-lab' }
+        : { ok: false, status: 401, error: 'Invalid token.' };
+    },
+  };
+  const bundle = createApp({ engine, dashboardAuth });
+  const { server, port } = await startServer(bundle);
+  const base = `http://127.0.0.1:${port}/api/dashboard`;
+
+  try {
+    assert.equal((await fetch(`${base}/state`)).status, 401);
+    assert.equal((await fetch(`${base}/events`)).status, 401);
+    assert.equal((await fetch(`${base}/state?token=bad`)).status, 401);
+    assert.equal(
+      (await fetch(`${base}/state?token=good&tenant=someone-else`)).status,
+      403,
+      'a valid token must not read another tenant'
+    );
+
+    const ok = await fetch(`${base}/state?token=good`);
+    assert.equal(ok.status, 200);
+    const state = await ok.json();
+    assert.equal(state.tenant.id, 'test-lab', 'token pins the tenant scope');
+
+    const viaHeader = await fetch(`${base}/state`, {
+      headers: { Authorization: 'Bearer good' },
+    });
+    assert.equal(viaHeader.status, 200);
+  } finally {
+    server.close();
+  }
+});
+
+test('twilio signature guard: valid HMAC passes, tampered payload rejected', () => {
+  const { twilioSignatureGuard, expectedSignature } = require('../src/services/twilioSig');
+  const guard = twilioSignatureGuard({
+    authToken: 'tok_secret', publicBaseUrl: 'https://engine.example', enabled: true,
+  });
+  const resStub = () => {
+    const r = { code: null, status(c) { r.code = c; return r; }, send() { return r; } };
+    return r;
+  };
+  const params = { From: '+15551234567', Body: 'hello', MessageSid: 'SM1' };
+  const sig = expectedSignature('tok_secret', 'https://engine.example/webhook/whatsapp', params);
+
+  let passed = false;
+  guard(
+    { headers: { 'x-twilio-signature': sig }, originalUrl: '/webhook/whatsapp', body: params },
+    resStub(), () => { passed = true; }
+  );
+  assert.equal(passed, true);
+
+  const res = resStub();
+  guard(
+    { headers: { 'x-twilio-signature': sig }, originalUrl: '/webhook/whatsapp',
+      body: { ...params, Body: 'tampered' } },
+    res, () => assert.fail('tampered body must not pass')
+  );
+  assert.equal(res.code, 403);
+
+  const res2 = resStub();
+  guard(
+    { headers: {}, originalUrl: '/webhook/whatsapp', body: params },
+    res2, () => assert.fail('missing signature must not pass')
+  );
+  assert.equal(res2.code, 403);
+});
+
+// ══════════════════════════════════════════════════════════════
+// 9. AUDIO CODEC — μ-law round trip sanity for the Live bridge
 // ══════════════════════════════════════════════════════════════
 test('codec: mu-law encode/decode round trip stays within tolerance', () => {
   for (const s of [0, 500, -500, 8000, -8000, 30000, -30000]) {

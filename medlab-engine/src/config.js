@@ -25,6 +25,8 @@ const config = {
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',
     authToken: process.env.TWILIO_AUTH_TOKEN || '',
     whatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER || '',
+    // Enable on deployed engines (needs the exact public URL to verify).
+    validateWebhooks: process.env.TWILIO_VALIDATE_WEBHOOKS === 'true',
   },
 
   tenant: {

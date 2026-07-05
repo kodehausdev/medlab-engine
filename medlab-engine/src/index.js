@@ -8,6 +8,7 @@ const { createEngine } = require('./core/engine');
 const { createWhatsAppRouter } = require('./routes/whatsapp');
 const { createVoiceRouter } = require('./routes/voice');
 const { createDashboardRouter } = require('./routes/dashboard');
+const { twilioSignatureGuard } = require('./services/twilioSig');
 const { sendWhatsApp } = require('./services/twilio');
 const { phiRequestGuard, safeLog } = require('./compliance/hipaa');
 
@@ -19,6 +20,11 @@ function createApp(overrides = {}) {
   app.use(express.json());
   app.use(express.urlencoded({ extended: false })); // Twilio posts form data
   app.use(phiRequestGuard);
+  app.use('/webhook', twilioSignatureGuard({
+    authToken: config.twilio.authToken,
+    publicBaseUrl: config.publicBaseUrl,
+    enabled: config.twilio.validateWebhooks,
+  }));
 
   app.get('/health', (_req, res) => {
     res.json({ ok: true, tenant: engine.tenant.id, store: engine.store.kind });
@@ -30,7 +36,7 @@ function createApp(overrides = {}) {
     batchWindowMs: overrides.batchWindowMs,
   }));
   app.use(createVoiceRouter({ engine }));
-  app.use(createDashboardRouter({ engine }));
+  app.use(createDashboardRouter({ engine, auth: overrides.dashboardAuth }));
 
   return { app, engine };
 }
