@@ -1,0 +1,23 @@
+{
+  "name": "medlab-ai-receptionist",
+  "version": "0.1.0",
+  "description": "MedLab AI Receptionist — HIPAA-conscious voice + WhatsApp appointment engine (Twilio x Gemini)",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "node --watch src/index.js",
+    "test": "node --test"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "UNLICENSED",
+  "dependencies": {
+    "@google/genai": "^2.10.0",
+    "@supabase/supabase-js": "^2.101.1",
+    "axios": "^1.14.0",
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "ws": "^8.18.0"
+  }
+}

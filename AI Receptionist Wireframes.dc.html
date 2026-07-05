@@ -1,0 +1,928 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet data-dc-atomics><meta name="design_doc_mode" content="canvas"><link rel="preconnect" href="https://fonts.googleapis.com"><link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet"><style>body{margin:0;background:#f0eee9;font-family:system-ui,sans-serif}.dv-turn{padding:40px 44px 32px;border-bottom:1px solid rgba(0,0,0,.08);scroll-margin-top:16px}.dv-thd{display:flex;align-items:baseline;gap:10px;margin:0 0 20px}.dv-tid{font:600 10px ui-monospace,Menlo,monospace;padding:3px 7px;background:#1a1a1a;color:#fff;border-radius:4px;text-decoration:none}.dv-tname{font:600 13px/1.2 system-ui,sans-serif;color:#1a1a1a}.dv-opts{display:flex;flex-wrap:wrap;gap:28px;align-items:flex-start}.dv-opt{flex:none;display:flex;flex-direction:column;gap:9px;scroll-margin-top:16px}.dv-oid{font:600 10.5px ui-monospace,Menlo,monospace;padding:3px 7px;background:rgba(0,0,0,.08);color:#1a1a1a;border-radius:5px;text-decoration:none}.dv-olabel{display:flex;align-items:baseline;gap:8px;font:400 11px/1.3 system-ui,sans-serif;color:rgba(0,0,0,.55)}.dv-card{max-width:100%;background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:8px;box-shadow:0 1px 3px rgba(0,0,0,.06);overflow:hidden}.dv-opt:target .dv-oid{background:#2a78d6;color:#fff}.dv-next{margin:22px 0 0;font:12px/1.5 system-ui,sans-serif;color:rgba(0,0,0,.5)}</style></helmet>
+
+<section class="dv-turn" id="t1">
+<div class="dv-thd"><a class="dv-tid" href="#t1">1</a><span class="dv-tname">MedLab AI Receptionist — landing (mobile + desktop) + console tabs (Call Logs, Compliance) · light clinical, matches MedLab Dashboard.dc.html</span></div>
+<div class="dv-opts">
+
+<!-- ===================== 1a: LANDING, mobile 390 ===================== -->
+<div class="dv-opt" id="1a">
+<div class="dv-olabel"><a class="dv-oid" href="#1a">1a</a>Landing — mobile 390px · sells to lab owners/directors</div>
+<div class="dv-card" style="width:390px;background:#f8fafc;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Landing (mobile)">
+
+  <!-- Nav -->
+  <div style="display:flex;align-items:center;justify-content:space-between;padding:14px 18px;background:#fff;border-bottom:1px solid #e2e8f0">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path></svg>
+      </div>
+      <span style="font-weight:700;font-size:14.5px;letter-spacing:-.01em">MedLab AI</span>
+    </div>
+    <span style="font-size:12px;font-weight:600;color:#4f46e5;border:1px solid #c7d2fe;background:#eef2ff;border-radius:7px;padding:6px 11px">Sign in</span>
+  </div>
+
+  <!-- Hero -->
+  <div style="padding:32px 20px 26px;display:flex;flex-direction:column;gap:14px;background:linear-gradient(180deg,#fff,#f8fafc)">
+    <span style="align-self:flex-start;font:600 10.5px 'IBM Plex Mono',monospace;color:#166534;background:#dcfce7;border:1px solid #86efac;border-radius:100px;padding:5px 11px;letter-spacing:.5px">HIPAA-CONSCIOUS · 24/7</span>
+    <h1 style="margin:0;font-size:30px;line-height:1.15;font-weight:700;letter-spacing:-.02em">Every patient call answered. Zero PHI stored.</h1>
+    <p style="margin:0;font-size:15px;line-height:1.55;color:#475569">The AI receptionist for medical labs — books draws over voice and WhatsApp, enforces chair capacity, and redacts health details in-stream before they touch a disk.</p>
+    <div style="display:flex;flex-direction:column;gap:9px;margin-top:6px">
+      <a href="#" onClick="{{ noop }}" style="display:block;text-align:center;background:#4f46e5;color:#fff;font-weight:600;font-size:15px;padding:14px;border-radius:10px;text-decoration:none">Book a 15-min demo</a>
+      <div style="text-align:center;font-size:12px;color:#64748b">$297/mo per location · live in a day · cancel anytime</div>
+    </div>
+  </div>
+
+  <!-- Guardrail transcript demo — the proof element -->
+  <div style="margin:0 18px 28px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+    <div style="display:flex;align-items:center;gap:8px;padding:11px 14px;border-bottom:1px solid #e2e8f0">
+      <span style="width:7px;height:7px;border-radius:50%;background:#4f46e5"></span>
+      <span style="font-size:12px;font-weight:700">Live call — watch the guardrail work</span>
+      <span style="margin-left:auto;font:600 9.5px 'IBM Plex Mono',monospace;color:#166534;background:#dcfce7;border-radius:100px;padding:3px 8px">PHI-SANITIZED</span>
+    </div>
+    <div style="padding:14px;display:flex;flex-direction:column;gap:10px">
+      <div style="align-self:flex-end;max-width:85%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:11px;padding:9px 12px;font-size:12.5px;line-height:1.5">I need a PCR, my doctor thinks I have <span style="display:inline-flex;align-items:center;background:#7f1d1d;color:#fecaca;border-radius:4px;padding:0 7px;font:600 10px 'IBM Plex Mono',monospace;text-decoration:line-through;text-decoration-color:#ef4444;text-decoration-thickness:2px">██████ REDACTED</span></div>
+      <div style="align-self:flex-start;max-width:85%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:11px;padding:9px 12px;font-size:12.5px;line-height:1.5">No diagnosis needed to book you — that detail was intercepted before it was stored anywhere. Which day works for your PCR?</div>
+    </div>
+    <div style="display:flex;align-items:center;gap:7px;padding:9px 14px;background:#fef2f2;border-top:1px solid #fecaca">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.2" stroke-linecap="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path></svg>
+      <span style="font-size:11px;color:#7f1d1d">Redacted in-stream — never written to disk, never sent to the model.</span>
+    </div>
+  </div>
+
+  <!-- 3 pains -->
+  <div style="padding:0 18px 28px;display:flex;flex-direction:column;gap:10px">
+    <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:1px">SOUND FAMILIAR?</div>
+    <sc-for list="{{ pains }}" as="p" hint-placeholder-count="3">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:14px;display:flex;gap:12px;align-items:flex-start">
+        <div style="width:32px;height:32px;border-radius:8px;background:{{ p.iconBg }};color:{{ p.iconFg }};display:grid;place-items:center;font-weight:700;font-size:14px;flex:none">{{ p.icon }}</div>
+        <div><div style="font-weight:600;font-size:13.5px">{{ p.title }}</div><div style="font-size:12.5px;color:#64748b;margin-top:2px;line-height:1.5">{{ p.body }}</div></div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Compliance posture -->
+  <div style="margin:0 18px 28px;background:linear-gradient(180deg,#f0fdf4,#fff 75%);border:1px solid #bbf7d0;border-radius:14px;padding:18px">
+    <div style="display:flex;align-items:center;gap:8px">
+      <svg width="15" height="15" viewBox="0 0 24 24" fill="#16a34a"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path><path d="M8.5 12l2.5 2.5 4.5-4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      <span style="font-weight:700;font-size:13.5px;color:#14532d">Minimum-necessary by design</span>
+    </div>
+    <p style="margin:8px 0 0;font-size:12.5px;line-height:1.6;color:#166534">It collects exactly four things — name, phone, test, time. Transcripts are never persisted; health details volunteered by callers are redacted before storage or model context. Every intercept is an audit-trail event.</p>
+  </div>
+
+  <!-- Proof metrics -->
+  <div style="margin:0 18px 28px;background:#0f172a;border-radius:14px;padding:18px;color:#f8fafc">
+    <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#a5b4fc;letter-spacing:1px">ONE LOCATION · LAST 30 DAYS</div>
+    <div style="display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-top:12px">
+      <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
+        <div><div style="font-size:22px;font-weight:700;letter-spacing:-.02em">{{ m.value }}</div><div style="font-size:11px;color:#94a3b8;margin-top:1px">{{ m.label }}</div></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Demo request form -->
+  <div style="margin:0 18px 24px;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px 18px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+    <sc-if value="{{ notSubmitted }}" hint-placeholder-val="{{ true }}">
+      <div style="display:flex;flex-direction:column;gap:11px">
+        <div style="font-weight:700;font-size:17px">See it on your own phone line.</div>
+        <div style="font-size:12.5px;color:#64748b;margin-top:-5px">Tell us about your lab — we'll set up a sandbox demo within one business day.</div>
+        <input value="{{ labName }}" onChange="{{ onLabName }}" placeholder="Lab / draw-station name" style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px 13px;color:#0f172a;font-size:14px;font-family:'IBM Plex Sans',sans-serif;outline:none"></input>
+        <input value="{{ contact }}" onChange="{{ onContact }}" placeholder="Your name" style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px 13px;color:#0f172a;font-size:14px;font-family:'IBM Plex Sans',sans-serif;outline:none"></input>
+        <input value="{{ phone }}" onChange="{{ onPhone }}" placeholder="Work phone" style="background:#f8fafc;border:1px solid #cbd5e1;border-radius:8px;padding:12px 13px;color:#0f172a;font-size:14px;font-family:'IBM Plex Sans',sans-serif;outline:none"></input>
+        <button onClick="{{ onSubmit }}" style="background:#4f46e5;color:#fff;font-weight:600;font-size:14.5px;padding:13px;border-radius:10px;border:none;cursor:pointer;font-family:'IBM Plex Sans',sans-serif">Request a demo →</button>
+        <div style="font-size:11px;color:#94a3b8;text-align:center">No patient data involved in the demo. Ever.</div>
+      </div>
+    </sc-if>
+    <sc-if value="{{ submitted }}" hint-placeholder-val="{{ false }}">
+      <div style="display:flex;flex-direction:column;align-items:center;gap:9px;text-align:center;padding:10px 0">
+        <div style="width:44px;height:44px;border-radius:50%;background:#dcfce7;color:#16a34a;display:grid;place-items:center;font-size:20px">✓</div>
+        <div style="font-weight:700;font-size:16px">Request received</div>
+        <div style="font-size:12.5px;color:#64748b;line-height:1.5">We'll call {{ phoneDisplay }} within one business day to schedule your sandbox demo.</div>
+      </div>
+    </sc-if>
+  </div>
+
+  <div style="padding:16px 18px 22px;border-top:1px solid #e2e8f0;background:#fff;display:flex;justify-content:space-between;font-size:11px;color:#94a3b8">
+    <span style="font-family:'IBM Plex Mono',monospace">MedLab AI Receptionist</span><span>$297/mo per location</span>
+  </div>
+</div>
+</div>
+
+<!-- ===================== 1b: LANDING, desktop 1180 ===================== -->
+<div class="dv-opt" id="1b">
+<div class="dv-olabel"><a class="dv-oid" href="#1b">1b</a>Landing — desktop 1180px</div>
+<div class="dv-card" style="width:1180px;background:#f8fafc;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Landing (desktop)">
+
+  <!-- Nav -->
+  <div style="display:flex;align-items:center;gap:26px;padding:16px 36px;background:#fff;border-bottom:1px solid #e2e8f0">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path></svg>
+      </div>
+      <span style="font-weight:700;font-size:15px;letter-spacing:-.01em">MedLab AI</span>
+    </div>
+    <span style="font-size:13px;color:#475569;font-weight:500">How it works</span>
+    <span style="font-size:13px;color:#475569;font-weight:500">Compliance</span>
+    <span style="font-size:13px;color:#475569;font-weight:500">Pricing</span>
+    <div style="margin-left:auto;display:flex;gap:9px;align-items:center">
+      <span style="font-size:13px;font-weight:600;color:#475569;padding:8px 14px">Sign in</span>
+      <span style="font-size:13px;font-weight:600;color:#fff;background:#4f46e5;border-radius:8px;padding:9px 16px">Book a demo</span>
+    </div>
+  </div>
+
+  <!-- Hero: copy left, transcript proof right -->
+  <div style="display:flex;gap:48px;padding:56px 36px 48px;align-items:center;background:linear-gradient(180deg,#fff,#f8fafc)">
+    <div style="flex:1;min-width:0;display:flex;flex-direction:column;gap:16px">
+      <span style="align-self:flex-start;font:600 11px 'IBM Plex Mono',monospace;color:#166534;background:#dcfce7;border:1px solid #86efac;border-radius:100px;padding:5px 12px;letter-spacing:.5px">HIPAA-CONSCIOUS · VOICE + WHATSAPP · 24/7</span>
+      <h1 style="margin:0;font-size:44px;line-height:1.08;font-weight:700;letter-spacing:-.025em">Every patient call answered.<br>Zero PHI stored.</h1>
+      <p style="margin:0;font-size:17px;line-height:1.6;color:#475569;max-width:520px">MedLab AI books lab draws around the clock, enforces chair capacity at booking time, and intercepts health details in-stream — so your front desk gets its day back and your compliance officer sleeps.</p>
+      <div style="display:flex;gap:11px;align-items:center;margin-top:6px">
+        <span style="font-size:15px;font-weight:600;color:#fff;background:#4f46e5;border-radius:10px;padding:13px 22px">Book a 15-min demo</span>
+        <span style="font-size:15px;font-weight:600;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;border-radius:10px;padding:13px 22px">Hear a sample call</span>
+      </div>
+      <div style="font-size:12.5px;color:#64748b">$297/mo per location · live in a day · no per-minute fees</div>
+    </div>
+    <div style="width:420px;flex:none;background:#fff;border:1px solid #e2e8f0;border-radius:16px;overflow:hidden;box-shadow:0 12px 32px rgba(15,23,42,.10)">
+      <div style="display:flex;align-items:center;gap:8px;padding:12px 16px;border-bottom:1px solid #e2e8f0">
+        <span style="width:7px;height:7px;border-radius:50%;background:#4f46e5"></span>
+        <span style="font-size:12.5px;font-weight:700">Live call — guardrail in action</span>
+        <span style="margin-left:auto;font:600 10px 'IBM Plex Mono',monospace;color:#166534;background:#dcfce7;border-radius:100px;padding:3px 9px">PHI-SANITIZED</span>
+      </div>
+      <div style="padding:16px;display:flex;flex-direction:column;gap:11px">
+        <div style="align-self:flex-start;max-width:86%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 13px;font-size:13px;line-height:1.55">Thanks for calling Meridian Diagnostics. What test do you need, and when?</div>
+        <div style="align-self:flex-end;max-width:86%;background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:10px 13px;font-size:13px;line-height:1.55">I need a PCR, my doctor thinks I have <span style="display:inline-flex;align-items:center;background:#7f1d1d;color:#fecaca;border-radius:4px;padding:0 7px;font:600 10.5px 'IBM Plex Mono',monospace;text-decoration:line-through;text-decoration-color:#ef4444;text-decoration-thickness:2px">██████ REDACTED</span></div>
+        <div style="align-self:flex-start;max-width:86%;background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:10px 13px;font-size:13px;line-height:1.55">No diagnosis needed to book you — that was intercepted before it was stored anywhere. The earliest chair is today at 10:30 AM. Shall I book it?</div>
+      </div>
+      <div style="display:flex;align-items:center;gap:7px;padding:10px 16px;background:#fef2f2;border-top:1px solid #fecaca">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.2" stroke-linecap="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path></svg>
+        <span style="font-size:11.5px;color:#7f1d1d">Guardrail event logged to the audit trail — caller content never persisted.</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- Pains, 3-col -->
+  <div style="padding:0 36px 44px;display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px">
+    <sc-for list="{{ pains }}" as="p" hint-placeholder-count="3">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:20px;display:flex;gap:13px;align-items:flex-start">
+        <div style="width:36px;height:36px;border-radius:9px;background:{{ p.iconBg }};color:{{ p.iconFg }};display:grid;place-items:center;font-weight:700;font-size:15px;flex:none">{{ p.icon }}</div>
+        <div><div style="font-weight:700;font-size:14.5px">{{ p.title }}</div><div style="font-size:13px;color:#64748b;margin-top:3px;line-height:1.55">{{ p.body }}</div></div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Metrics band -->
+  <div style="margin:0 36px 44px;background:#0f172a;border-radius:16px;padding:26px 32px;color:#f8fafc;display:flex;align-items:center;gap:40px">
+    <div style="flex:none">
+      <div style="font:600 10.5px 'IBM Plex Mono',monospace;color:#a5b4fc;letter-spacing:1px">ONE LOCATION · 30 DAYS</div>
+      <div style="font-size:13px;color:#94a3b8;margin-top:4px;max-width:200px;line-height:1.5">Numbers from a live Midtown draw station on the Pro plan.</div>
+    </div>
+    <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:32px;flex:1">
+      <sc-for list="{{ metrics }}" as="m" hint-placeholder-count="4">
+        <div><div style="font-size:28px;font-weight:700;letter-spacing:-.02em">{{ m.value }}</div><div style="font-size:12px;color:#94a3b8;margin-top:2px">{{ m.label }}</div></div>
+      </sc-for>
+    </div>
+  </div>
+
+  <!-- Footer CTA -->
+  <div style="padding:0 36px 48px;display:flex;justify-content:center">
+    <div style="background:linear-gradient(180deg,#f0fdf4,#fff 80%);border:1px solid #bbf7d0;border-radius:16px;padding:30px 40px;display:flex;flex-direction:column;align-items:center;gap:12px;width:100%;text-align:center">
+      <div style="font-size:22px;font-weight:700;letter-spacing:-.02em;color:#14532d">Your phones, answered — your PHI, untouched.</div>
+      <div style="font-size:13.5px;color:#166534">Sandbox demo on your own number. No patient data involved. Ever.</div>
+      <span style="font-size:15px;font-weight:600;color:#fff;background:#4f46e5;border-radius:10px;padding:13px 26px;margin-top:4px">Request a demo →</span>
+    </div>
+  </div>
+
+  <div style="padding:16px 36px;border-top:1px solid #e2e8f0;background:#fff;display:flex;justify-content:space-between;font-size:11.5px;color:#94a3b8">
+    <span style="font-family:'IBM Plex Mono',monospace">MedLab AI Receptionist · BAA available on Pro</span><span>$297/mo per location</span>
+  </div>
+</div>
+</div>
+
+<!-- ===================== 1c: CONSOLE — CALL LOGS 1180 ===================== -->
+<div class="dv-opt" id="1c">
+<div class="dv-olabel"><a class="dv-oid" href="#1c">1c</a>Console — Call Logs tab, desktop 1180px · fills the "View all logs →" destination</div>
+<div class="dv-card" style="width:1180px;background:#f1f5f9;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Console — Call Logs">
+
+  <!-- Console header (mirrors dashboard) -->
+  <div style="background:#0f172a;color:#f8fafc;display:flex;align-items:center;gap:16px;padding:0 22px;height:56px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path></svg>
+      </div>
+      <div style="line-height:1.15">
+        <div style="font-size:13.5px;font-weight:700">Meridian Diagnostics</div>
+        <div style="font-size:9.5px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">AI RECEPTIONIST · CONSOLE</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:2px;margin-left:16px">
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Overview</span>
+      <span style="font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:6px;background:rgba(99,102,241,.22);color:#c7d2fe">Call Logs</span>
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Scheduling</span>
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Compliance</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+      <span style="display:flex;align-items:center;gap:6px;font:600 10.5px 'IBM Plex Mono',monospace;color:#6ee7b7;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.35);border-radius:100px;padding:5px 10px"><span style="width:6px;height:6px;border-radius:50%;background:#34d399"></span>AI LINE ACTIVE</span>
+      <div style="width:28px;height:28px;border-radius:50%;background:#334155;display:grid;place-items:center;font-size:11px;font-weight:700;color:#cbd5e1">DR</div>
+    </div>
+  </div>
+
+  <div style="padding:20px 22px 24px">
+    <!-- Heading + filters -->
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px">
+      <div>
+        <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.02em">Call Logs</h1>
+        <p style="margin:3px 0 0;font-size:12.5px;color:#64748b">Friday, July 4, 2026 · all channels · sanitized transcripts only</p>
+      </div>
+      <span style="font-size:12px;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;padding:7px 12px;border-radius:8px;font-weight:600">Export CSV manifest</span>
+    </div>
+    <div style="display:flex;gap:8px;margin-bottom:14px;flex-wrap:wrap">
+      <span style="font-size:12px;font-weight:600;color:#0f172a;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:7px 12px">Today ▾</span>
+      <span style="font-size:12px;font-weight:600;color:#0f172a;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:7px 12px">Channel: All ▾</span>
+      <sc-for list="{{ filters }}" as="f" hint-placeholder-count="5">
+        <span style="font-size:12px;font-weight:600;color:{{ f.fg }};background:{{ f.bg }};border:1px solid {{ f.border }};border-radius:100px;padding:7px 13px">{{ f.label }}</span>
+      </sc-for>
+    </div>
+
+    <!-- Table -->
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+      <div style="display:grid;grid-template-columns:64px 160px 84px 168px 170px 62px 1fr;gap:0 12px;padding:9px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">TIME</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">PATIENT</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">CHANNEL</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">REQUESTED TEST</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">STATUS</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">DUR</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">AI SUMMARY</span>
+      </div>
+      <sc-for list="{{ logCalls }}" as="c" hint-placeholder-count="8">
+        <div style="display:grid;grid-template-columns:64px 160px 84px 168px 170px 62px 1fr;gap:0 12px;padding:11px 18px;border-bottom:1px solid #f1f5f9;align-items:center;background:{{ c.rowBg }}" style-hover="background:#f8fafc">
+          <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#64748b">{{ c.time }}</span>
+          <div style="min-width:0">
+            <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</div>
+            <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#94a3b8">{{ c.phone }}</div>
+          </div>
+          <span style="font:600 10px 'IBM Plex Mono',monospace;color:{{ c.chFg }};background:{{ c.chBg }};border-radius:5px;padding:3px 7px;text-align:center">{{ c.channel }}</span>
+          <span style="font-size:12px;color:#334155;font-weight:500">{{ c.test }}</span>
+          <span style="justify-self:start;display:inline-flex;align-items:center;gap:5px;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ c.badgeBg }};color:{{ c.badgeFg }};border:1px solid {{ c.badgeBorder }};white-space:nowrap"><span style="width:5px;height:5px;border-radius:50%;background:{{ c.badgeFg }}"></span>{{ c.status }}</span>
+          <span style="font:400 11px 'IBM Plex Mono',monospace;color:#64748b">{{ c.dur }}</span>
+          <span style="font-size:11.5px;color:#64748b;line-height:1.45;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ c.summary }}</span>
+        </div>
+      </sc-for>
+      <div style="display:flex;align-items:center;justify-content:space-between;padding:11px 18px;background:#f8fafc">
+        <span style="font:400 11px 'IBM Plex Mono',monospace;color:#64748b">SHOWING 8 OF 131 · TODAY</span>
+        <div style="display:flex;gap:6px">
+          <span style="font-size:11.5px;font-weight:600;color:#94a3b8;border:1px solid #e2e8f0;border-radius:7px;padding:5px 11px;background:#fff">← Prev</span>
+          <span style="font-size:11.5px;font-weight:600;color:#0f172a;border:1px solid #cbd5e1;border-radius:7px;padding:5px 11px;background:#fff">Next →</span>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== 1d: CONSOLE — COMPLIANCE 1180 ===================== -->
+<div class="dv-opt" id="1d">
+<div class="dv-olabel"><a class="dv-oid" href="#1d">1d</a>Console — Compliance tab, desktop 1180px · audit trail + control posture</div>
+<div class="dv-card" style="width:1180px;background:#f1f5f9;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Console — Compliance">
+
+  <!-- Console header -->
+  <div style="background:#0f172a;color:#f8fafc;display:flex;align-items:center;gap:16px;padding:0 22px;height:56px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path></svg>
+      </div>
+      <div style="line-height:1.15">
+        <div style="font-size:13.5px;font-weight:700">Meridian Diagnostics</div>
+        <div style="font-size:9.5px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">AI RECEPTIONIST · CONSOLE</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:2px;margin-left:16px">
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Overview</span>
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Call Logs</span>
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Scheduling</span>
+      <span style="font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:6px;background:rgba(99,102,241,.22);color:#c7d2fe">Compliance</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+      <span style="display:flex;align-items:center;gap:6px;font:600 10.5px 'IBM Plex Mono',monospace;color:#6ee7b7;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.35);border-radius:100px;padding:5px 10px"><span style="width:6px;height:6px;border-radius:50%;background:#34d399"></span>GUARDRAILS ACTIVE</span>
+      <div style="width:28px;height:28px;border-radius:50%;background:#334155;display:grid;place-items:center;font-size:11px;font-weight:700;color:#cbd5e1">DR</div>
+    </div>
+  </div>
+
+  <div style="padding:20px 22px 24px">
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:16px">
+      <div>
+        <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.02em">Compliance</h1>
+        <p style="margin:3px 0 0;font-size:12.5px;color:#64748b">Guardrail audit trail · control posture · BAA status</p>
+      </div>
+      <span style="font-size:12px;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;padding:7px 12px;border-radius:8px;font-weight:600">Download audit export</span>
+    </div>
+
+    <!-- KPI row -->
+    <div style="display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:12px;margin-bottom:16px">
+      <sc-for list="{{ compKpis }}" as="k" hint-placeholder-count="4">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:15px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+          <div style="font:600 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">{{ k.label }}</div>
+          <div style="font-size:24px;font-weight:700;letter-spacing:-.02em;margin-top:6px;color:{{ k.color }}">{{ k.value }}</div>
+          <div style="font-size:11px;color:#94a3b8;margin-top:2px">{{ k.sub }}</div>
+        </div>
+      </sc-for>
+    </div>
+
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <!-- Audit trail -->
+      <div style="flex:1;min-width:0;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+        <div style="display:flex;align-items:center;gap:9px;padding:13px 18px;border-bottom:1px solid #e2e8f0">
+          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.2" stroke-linecap="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path></svg>
+          <span style="font-size:13.5px;font-weight:700">Guardrail audit trail</span>
+          <span style="margin-left:auto;font:400 10.5px 'IBM Plex Mono',monospace;color:#64748b">EVENT METADATA ONLY — NO CALLER CONTENT IS EVER LOGGED</span>
+        </div>
+        <div style="display:grid;grid-template-columns:150px 58px 148px 130px 66px 1fr;gap:0 12px;padding:8px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">EVENT ID</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">TIME</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">TYPE</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">TOOL</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">PHONE</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">ACTION TAKEN</span>
+        </div>
+        <sc-for list="{{ auditEvents }}" as="e" hint-placeholder-count="6">
+          <div style="display:grid;grid-template-columns:150px 58px 148px 130px 66px 1fr;gap:0 12px;padding:11px 18px;border-bottom:1px solid #f1f5f9;align-items:center">
+            <span style="font:500 11px 'IBM Plex Mono',monospace;color:#3730a3">{{ e.id }}</span>
+            <span style="font:400 11px 'IBM Plex Mono',monospace;color:#64748b">{{ e.time }}</span>
+            <span style="justify-self:start;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ e.typeBg }};color:{{ e.typeFg }};border:1px solid {{ e.typeBorder }};white-space:nowrap">{{ e.type }}</span>
+            <span style="font:400 11px 'IBM Plex Mono',monospace;color:#334155">{{ e.tool }}</span>
+            <span style="font:400 11px 'IBM Plex Mono',monospace;color:#94a3b8">{{ e.tail }}</span>
+            <span style="font-size:11.5px;color:#64748b;line-height:1.45">{{ e.action }}</span>
+          </div>
+        </sc-for>
+        <div style="padding:10px 18px;background:#f8fafc;font:400 11px 'IBM Plex Mono',monospace;color:#64748b">RETENTION: 6 YEARS · EXPORTS ARE PHI-FREE BY CONSTRUCTION</div>
+      </div>
+
+      <!-- Right rail: controls + BAA -->
+      <div style="width:320px;flex:none;display:flex;flex-direction:column;gap:14px">
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:10px">Technical controls</div>
+          <sc-for list="{{ controls }}" as="ctl" hint-placeholder-count="4">
+            <div style="display:flex;gap:9px;align-items:flex-start;padding:7px 0;border-top:1px solid #f1f5f9">
+              <span style="width:16px;height:16px;border-radius:50%;background:#dcfce7;color:#16a34a;display:grid;place-items:center;font-size:10px;font-weight:700;flex:none;margin-top:1px">✓</span>
+              <div><div style="font:600 11.5px 'IBM Plex Mono',monospace;color:#0f172a">{{ ctl.name }}</div><div style="font-size:11px;color:#64748b;margin-top:1px;line-height:1.45">{{ ctl.desc }}</div></div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+          <div style="font-size:13.5px;font-weight:700;margin-bottom:10px">BAA status</div>
+          <sc-for list="{{ baas }}" as="b" hint-placeholder-count="4">
+            <div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-top:1px solid #f1f5f9">
+              <span style="width:16px;height:16px;border-radius:50%;background:{{ b.dotBg }};color:{{ b.dotFg }};display:grid;place-items:center;font-size:9.5px;font-weight:700;flex:none">{{ b.dot }}</span>
+              <span style="font-size:12px;font-weight:500;color:#334155">{{ b.name }}</span>
+              <span style="margin-left:auto;font:600 10px 'IBM Plex Mono',monospace;color:{{ b.stFg }}">{{ b.state }}</span>
+            </div>
+          </sc-for>
+          <div style="margin-top:10px;font-size:10.5px;color:#94a3b8;line-height:1.5">Technical controls ≠ compliance. Production requires signed BAAs across the stack.</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Continued in <a class="dv-oid" href="#t2">2</a> (Scheduling + mobile console) and <a class="dv-oid" href="#t3">3</a> (onboarding + pricing).</p>
+</section>
+
+<!-- ════════════════════════════ TURN 2 ════════════════════════════ -->
+<section class="dv-turn" id="t2">
+<div class="dv-thd"><a class="dv-tid" href="#t2">2</a><span class="dv-tname">Console — Scheduling tab (chair-level day grid) + mobile console for lab directors on the floor</span></div>
+<div class="dv-opts">
+
+<!-- ===================== 2a: CONSOLE — SCHEDULING 1180 ===================== -->
+<div class="dv-opt" id="2a">
+<div class="dv-olabel"><a class="dv-oid" href="#2a">2a</a>Console — Scheduling tab, desktop 1180px · slots × chairs, AI enforces every rule at booking time</div>
+<div class="dv-card" style="width:1180px;background:#f1f5f9;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Console — Scheduling">
+
+  <!-- Console header (Scheduling active) -->
+  <div style="background:#0f172a;color:#f8fafc;display:flex;align-items:center;gap:16px;padding:0 22px;height:56px">
+    <div style="display:flex;align-items:center;gap:10px">
+      <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path></svg>
+      </div>
+      <div style="line-height:1.15">
+        <div style="font-size:13.5px;font-weight:700">Meridian Diagnostics</div>
+        <div style="font-size:9.5px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">AI RECEPTIONIST · CONSOLE</div>
+      </div>
+    </div>
+    <div style="display:flex;gap:2px;margin-left:16px">
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Overview</span>
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Call Logs</span>
+      <span style="font-size:12.5px;font-weight:600;padding:6px 12px;border-radius:6px;background:rgba(99,102,241,.22);color:#c7d2fe">Scheduling</span>
+      <span style="font-size:12.5px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Compliance</span>
+    </div>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:12px">
+      <span style="display:flex;align-items:center;gap:6px;font:600 10.5px 'IBM Plex Mono',monospace;color:#6ee7b7;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.35);border-radius:100px;padding:5px 10px"><span style="width:6px;height:6px;border-radius:50%;background:#34d399"></span>AI LINE ACTIVE</span>
+      <div style="width:28px;height:28px;border-radius:50%;background:#334155;display:grid;place-items:center;font-size:11px;font-weight:700;color:#cbd5e1">DR</div>
+    </div>
+  </div>
+
+  <div style="padding:20px 22px 24px">
+    <!-- Heading + date nav -->
+    <div style="display:flex;align-items:flex-end;justify-content:space-between;margin-bottom:14px;flex-wrap:wrap;gap:10px">
+      <div>
+        <h1 style="margin:0;font-size:19px;font-weight:700;letter-spacing:-.02em">Scheduling</h1>
+        <p style="margin:3px 0 0;font-size:12.5px;color:#64748b">Draw station #1 — Midtown · 4 chairs · slots the AI can offer, live</p>
+      </div>
+      <div style="display:flex;gap:8px;align-items:center">
+        <span style="font-size:12px;font-weight:600;color:#475569;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:7px 11px">◀</span>
+        <span style="font-size:12px;font-weight:700;color:#0f172a;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:7px 14px">Friday, Jul 4 — Today</span>
+        <span style="font-size:12px;font-weight:600;color:#475569;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:7px 11px">▶</span>
+        <span style="font-size:12px;font-weight:600;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;border-radius:8px;padding:7px 12px">+ Walk-in hold</span>
+      </div>
+    </div>
+
+    <div style="display:flex;gap:16px;align-items:flex-start">
+      <!-- Chair grid -->
+      <div style="flex:1;min-width:0;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+        <div style="display:grid;grid-template-columns:70px repeat(4,1fr) 110px;gap:0 10px;padding:9px 16px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">TIME</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">CHAIR 1</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">CHAIR 2</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">CHAIR 3</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">CHAIR 4</span>
+          <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em;text-align:right">AI STATUS</span>
+        </div>
+        <sc-for list="{{ schedRows }}" as="r" hint-placeholder-count="8">
+          <div style="display:grid;grid-template-columns:70px repeat(4,1fr) 110px;gap:0 10px;padding:8px 16px;border-bottom:1px solid #f1f5f9;align-items:center">
+            <span style="font:600 11.5px 'IBM Plex Mono',monospace;color:#334155">{{ r.time }}</span>
+            <sc-for list="{{ r.chairs }}" as="ch" hint-placeholder-count="4">
+              <div style="min-width:0;border-radius:8px;padding:6px 9px;min-height:34px;background:{{ ch.bg }};border:{{ ch.border }};display:flex;flex-direction:column;justify-content:center">
+                <div style="font-size:11px;font-weight:600;color:{{ ch.fg }};white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ch.label }}</div>
+                <sc-if value="{{ ch.sub }}" hint-placeholder-val="{{ false }}">
+                  <div style="font:400 9.5px 'IBM Plex Mono',monospace;color:#94a3b8;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ ch.sub }}</div>
+                </sc-if>
+              </div>
+            </sc-for>
+            <span style="justify-self:end;font-size:10.5px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ r.tagBg }};color:{{ r.tagFg }};border:1px solid {{ r.tagBorder }};white-space:nowrap">{{ r.tag }}</span>
+          </div>
+        </sc-for>
+        <div style="padding:9px 16px;font:400 11px 'IBM Plex Mono',monospace;color:#94a3b8;border-bottom:1px solid #f1f5f9;text-align:center">⋯ 10 MORE SLOTS UNTIL 17:00 ⋯</div>
+        <div style="display:flex;gap:14px;padding:10px 16px;background:#f8fafc;flex-wrap:wrap">
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:3px;background:#eef2ff;border:1px solid #c7d2fe"></span>Booked by AI</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:3px;background:#fff;border:1px dashed #cbd5e1"></span>Open</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:3px;background:#fffbeb;border:1px solid #fde68a"></span>Walk-in hold</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:3px;background:#fef2f2;border:1px solid #fecaca"></span>STAT</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:3px;background:repeating-linear-gradient(45deg,#f1f5f9 0 3px,#f8fafc 3px 6px);border:1px solid #e2e8f0"></span>Blocked</span>
+        </div>
+      </div>
+
+      <!-- Right rail: rules + blocked windows -->
+      <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:14px">
+        <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:15px 17px">
+          <div style="display:flex;align-items:center;gap:8px;margin-bottom:8px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#4338ca" stroke-width="2" stroke-linecap="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path></svg>
+            <span style="font-size:13px;font-weight:700;color:#3730a3">Rules the AI enforces</span>
+          </div>
+          <sc-for list="{{ schedRules }}" as="ru" hint-placeholder-count="4">
+            <div style="padding:7px 0;border-top:1px solid rgba(99,102,241,.18)">
+              <div style="font-size:12px;font-weight:700;color:#3730a3">{{ ru.t }}</div>
+              <div style="font-size:11.5px;color:#4338ca;line-height:1.5;margin-top:1px">{{ ru.d }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:15px 17px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+          <div style="font-size:13px;font-weight:700;margin-bottom:8px">Blocked windows</div>
+          <sc-for list="{{ blockedWindows }}" as="bw" hint-placeholder-count="2">
+            <div style="display:flex;align-items:center;gap:9px;padding:8px 0;border-top:1px solid #f1f5f9">
+              <span style="width:10px;height:10px;border-radius:3px;background:repeating-linear-gradient(45deg,#e2e8f0 0 3px,#f8fafc 3px 6px);border:1px solid #e2e8f0;flex:none"></span>
+              <div><div style="font:600 11.5px 'IBM Plex Mono',monospace;color:#334155">{{ bw.label }}</div><div style="font-size:11px;color:#94a3b8">{{ bw.sub }}</div></div>
+              <span style="margin-left:auto;font-size:11px;color:#94a3b8">✕</span>
+            </div>
+          </sc-for>
+          <div style="margin-top:10px;border:1px dashed #cbd5e1;border-radius:8px;padding:9px;text-align:center;font-size:12px;font-weight:600;color:#64748b">+ Add blocked window</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== 2b: MOBILE CONSOLE 390 ===================== -->
+<div class="dv-opt" id="2b">
+<div class="dv-olabel"><a class="dv-oid" href="#2b">2b</a>Mobile console — 390px · for lab directors on the floor</div>
+<div class="dv-card" style="width:390px;background:#f1f5f9;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Mobile console">
+
+  <!-- Header -->
+  <div style="background:#0f172a;color:#f8fafc;padding:13px 16px 11px">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="display:flex;align-items:center;gap:8px">
+        <div style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path></svg>
+        </div>
+        <div style="line-height:1.1">
+          <div style="font-size:13px;font-weight:700">Meridian Diagnostics</div>
+          <div style="font-size:9px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">FRI JUL 4 · STATION #1</div>
+        </div>
+      </div>
+      <span style="display:flex;align-items:center;gap:5px;font:600 10px 'IBM Plex Mono',monospace;color:#6ee7b7"><span style="width:6px;height:6px;border-radius:50%;background:#34d399"></span>LIVE</span>
+    </div>
+  </div>
+
+  <!-- KPIs -->
+  <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 0">
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 13px">
+      <div style="font:600 9.5px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.06em">CALLS ANSWERED</div>
+      <div style="font-size:24px;font-weight:700;margin-top:3px">131</div>
+      <div style="font-size:10.5px;color:#4f46e5;font-weight:600">94% end-to-end by AI</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:12px 13px">
+      <div style="font:600 9.5px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.06em">BOOKED TODAY</div>
+      <div style="font-size:24px;font-weight:700;margin-top:3px">49</div>
+      <div style="font-size:10.5px;color:#1d4ed8;font-weight:600">Peak 9–11 AM</div>
+    </div>
+  </div>
+
+  <!-- Guardrail alert -->
+  <div style="margin:10px 16px 0;display:flex;align-items:center;gap:9px;background:#fef2f2;border:1px solid #fecaca;border-radius:11px;padding:10px 13px">
+    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.2" stroke-linecap="round" style="flex:none"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path><path d="M9 12h6"></path></svg>
+    <div style="min-width:0;flex:1">
+      <div style="font-size:12px;font-weight:700;color:#7f1d1d">1 guardrail event today</div>
+      <div style="font-size:10.5px;color:#b91c1c">10:42 AM · PHI redacted in-stream · nothing stored</div>
+    </div>
+    <span style="font-size:14px;color:#b91c1c;flex:none">›</span>
+  </div>
+
+  <!-- Next slots strip -->
+  <div style="padding:14px 16px 6px;font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">NEXT SLOTS</div>
+  <div style="display:flex;gap:8px;padding:0 16px;overflow:hidden">
+    <sc-for list="{{ mobileSlots }}" as="ms" hint-placeholder-count="4">
+      <div style="flex:1;background:{{ ms.bg }};border:1px solid {{ ms.border }};border-radius:9px;padding:8px 0;text-align:center">
+        <div style="font:600 11px 'IBM Plex Mono',monospace;color:#334155">{{ ms.time }}</div>
+        <div style="font:600 9.5px 'IBM Plex Mono',monospace;color:{{ ms.fg }};margin-top:2px">{{ ms.state }}</div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Live feed -->
+  <div style="padding:16px 16px 6px;font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">LIVE FEED</div>
+  <div style="margin:0 16px 14px;background:#fff;border:1px solid #e2e8f0;border-radius:12px;overflow:hidden">
+    <sc-for list="{{ mobileFeed }}" as="mc" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;gap:10px;padding:11px 13px;border-bottom:1px solid #f1f5f9;background:{{ mc.rowBg }}">
+        <div style="width:32px;height:32px;border-radius:50%;background:#eef2ff;color:#4338ca;display:grid;place-items:center;font-size:11px;font-weight:700;flex:none">{{ mc.initials }}</div>
+        <div style="min-width:0;flex:1">
+          <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ mc.name }} · {{ mc.test }}</div>
+          <div style="font:400 10.5px 'IBM Plex Mono',monospace;color:#94a3b8">{{ mc.time }}</div>
+        </div>
+        <span style="font-size:9.5px;font-weight:600;padding:3px 8px;border-radius:999px;background:{{ mc.badgeBg }};color:{{ mc.badgeFg }};border:1px solid {{ mc.badgeBorder }};white-space:nowrap;flex:none">{{ mc.status }}</span>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- Tab bar -->
+  <div style="display:flex;justify-content:space-around;border-top:1px solid #e2e8f0;background:#fff;padding:10px 0 14px">
+    <span style="font-size:10.5px;font-weight:700;color:#4f46e5;text-align:center">●<br>Overview</span>
+    <span style="font-size:10.5px;font-weight:500;color:#94a3b8;text-align:center">○<br>Calls</span>
+    <span style="font-size:10.5px;font-weight:500;color:#94a3b8;text-align:center">○<br>Schedule</span>
+    <span style="font-size:10.5px;font-weight:500;color:#94a3b8;text-align:center">○<br>Compliance</span>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Turn 3 below: tenant onboarding flow + pricing with BAA tiers.</p>
+</section>
+
+<!-- ════════════════════════════ TURN 3 ════════════════════════════ -->
+<section class="dv-turn" id="t3">
+<div class="dv-thd"><a class="dv-tid" href="#t3">3</a><span class="dv-tname">Tenant onboarding wizard (phone lines step) + public pricing page — the tier is the BAA paperwork</span></div>
+<div class="dv-opts">
+
+<!-- ===================== 3a: ONBOARDING WIZARD 1180 ===================== -->
+<div class="dv-opt" id="3a">
+<div class="dv-olabel"><a class="dv-oid" href="#3a">3a</a>Onboarding — desktop 1180px · step 2 of 4 active (connect phone lines)</div>
+<div class="dv-card" style="width:1180px;background:#f8fafc;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Onboarding — Phone lines">
+
+  <!-- Minimal setup header -->
+  <div style="display:flex;align-items:center;gap:12px;padding:14px 28px;background:#fff;border-bottom:1px solid #e2e8f0">
+    <div style="width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+      <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path></svg>
+    </div>
+    <span style="font-weight:700;font-size:14px">MedLab AI</span>
+    <span style="font:500 11px 'IBM Plex Mono',monospace;color:#64748b;background:#f1f5f9;border-radius:6px;padding:4px 9px">SETUP · MERIDIAN DIAGNOSTICS</span>
+    <span style="margin-left:auto;font-size:12.5px;font-weight:600;color:#64748b">Save &amp; exit</span>
+  </div>
+
+  <!-- Stepper -->
+  <div style="display:flex;align-items:center;gap:0;padding:22px 28px 0;max-width:860px">
+    <sc-for list="{{ obSteps }}" as="st" hint-placeholder-count="4">
+      <div style="display:flex;align-items:center;flex:{{ st.flex }}">
+        <div style="display:flex;align-items:center;gap:9px;flex:none">
+          <span style="width:26px;height:26px;border-radius:50%;background:{{ st.circBg }};color:{{ st.circFg }};border:{{ st.circBorder }};display:grid;place-items:center;font-size:11.5px;font-weight:700">{{ st.mark }}</span>
+          <span style="font-size:12.5px;font-weight:{{ st.w }};color:{{ st.labelFg }};white-space:nowrap">{{ st.label }}</span>
+        </div>
+        <sc-if value="{{ st.hasBar }}" hint-placeholder-val="{{ true }}">
+          <div style="flex:1;height:2px;background:{{ st.barBg }};margin:0 14px;border-radius:2px"></div>
+        </sc-if>
+      </div>
+    </sc-for>
+  </div>
+
+  <div style="display:flex;gap:20px;align-items:flex-start;padding:22px 28px 28px">
+    <!-- Main step card -->
+    <div style="flex:1;min-width:0;background:#fff;border:1px solid #e2e8f0;border-radius:14px;padding:24px 26px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+      <h2 style="margin:0;font-size:18px;font-weight:700;letter-spacing:-.02em">Connect your phone lines</h2>
+      <p style="margin:5px 0 18px;font-size:13px;color:#64748b;line-height:1.55">The AI answers on a HIPAA-eligible Twilio line. Keep your published number — choose how calls reach the receptionist.</p>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:12px">
+        <div style="border:2px solid #4f46e5;background:#eef2ff;border-radius:12px;padding:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:15px;height:15px;border-radius:50%;border:5px solid #4f46e5;background:#fff;flex:none"></span>
+            <span style="font-size:13.5px;font-weight:700;color:#3730a3">Port your existing number</span>
+          </div>
+          <p style="margin:7px 0 0 23px;font-size:12px;color:#4338ca;line-height:1.5">Patients keep dialing the number they know. AI answers 24/7; staff join by warm transfer. Porting takes 3–5 business days.</p>
+        </div>
+        <div style="border:1px solid #cbd5e1;background:#fff;border-radius:12px;padding:16px">
+          <div style="display:flex;align-items:center;gap:8px">
+            <span style="width:15px;height:15px;border-radius:50%;border:2px solid #cbd5e1;background:#fff;flex:none"></span>
+            <span style="font-size:13.5px;font-weight:700;color:#334155">Forward after hours only</span>
+          </div>
+          <p style="margin:7px 0 0 23px;font-size:12px;color:#64748b;line-height:1.5">Front desk keeps daytime calls; your carrier forwards to the AI line after close and on weekends. Live in minutes.</p>
+        </div>
+      </div>
+
+      <div style="margin-top:16px;display:flex;align-items:center;gap:8px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:10px 13px">
+        <svg width="13" height="13" viewBox="0 0 24 24" fill="#16a34a"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path><path d="M8.5 12l2.5 2.5 4.5-4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+        <span style="font-size:12px;color:#166534">HIPAA-eligible voice line — covered by the Twilio BAA on the Covered Entity plan.</span>
+      </div>
+
+      <div style="margin-top:20px">
+        <div style="font:700 10.5px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em;margin-bottom:8px">WEBHOOKS — AUTO-CONFIGURED, SHOWN FOR YOUR IT TEAM</div>
+        <sc-for list="{{ webhooks }}" as="wh" hint-placeholder-count="2">
+          <div style="display:flex;align-items:center;gap:10px;background:#f8fafc;border:1px solid #e2e8f0;border-radius:9px;padding:10px 13px;margin-bottom:8px">
+            <span style="font-size:11.5px;font-weight:700;color:#334155;width:72px;flex:none">{{ wh.label }}</span>
+            <span style="font:400 11.5px 'IBM Plex Mono',monospace;color:#4338ca;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">{{ wh.url }}</span>
+            <span style="font-size:11px;font-weight:600;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:4px 10px;flex:none">Copy</span>
+          </div>
+        </sc-for>
+      </div>
+
+      <div style="margin-top:18px;display:flex;align-items:center;gap:12px">
+        <span style="font-size:13px;font-weight:600;color:#fff;background:#4f46e5;border-radius:9px;padding:11px 18px">Place a test call</span>
+        <span style="font:600 10.5px 'IBM Plex Mono',monospace;color:#c2410c;background:#fff7ed;border:1px solid #fed7aa;border-radius:100px;padding:5px 12px">● WAITING FOR FIRST INBOUND CALL…</span>
+      </div>
+
+      <div style="display:flex;justify-content:space-between;margin-top:24px;padding-top:18px;border-top:1px solid #e2e8f0">
+        <span style="font-size:13px;font-weight:600;color:#64748b;padding:10px 4px">← Back: Lab profile</span>
+        <span style="font-size:13px;font-weight:600;color:#fff;background:#0f172a;border-radius:9px;padding:11px 18px">Continue: Test catalog →</span>
+      </div>
+    </div>
+
+    <!-- Right rail: go-live checklist -->
+    <div style="width:300px;flex:none;display:flex;flex-direction:column;gap:14px">
+      <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:16px 18px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+        <div style="display:flex;align-items:baseline;justify-content:space-between;margin-bottom:8px">
+          <span style="font-size:13.5px;font-weight:700">Go-live checklist</span>
+          <span style="font:600 11px 'IBM Plex Mono',monospace;color:#64748b">2/6</span>
+        </div>
+        <div style="height:6px;background:#f1f5f9;border-radius:3px;overflow:hidden;margin-bottom:6px">
+          <div style="width:33%;height:100%;background:linear-gradient(90deg,#4f46e5,#6366f1);border-radius:3px"></div>
+        </div>
+        <sc-for list="{{ goLive }}" as="gl" hint-placeholder-count="6">
+          <div style="display:flex;gap:9px;align-items:center;padding:7px 0;border-top:1px solid #f1f5f9">
+            <span style="width:16px;height:16px;border-radius:50%;background:{{ gl.dotBg }};color:{{ gl.dotFg }};display:grid;place-items:center;font-size:9.5px;font-weight:700;flex:none">{{ gl.dot }}</span>
+            <span style="font-size:12px;font-weight:500;color:#334155">{{ gl.label }}</span>
+            <span style="margin-left:auto;font:600 9.5px 'IBM Plex Mono',monospace;color:{{ gl.stFg }}">{{ gl.state }}</span>
+          </div>
+        </sc-for>
+      </div>
+      <div style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:14px 16px">
+        <div style="font-size:13px;font-weight:700;color:#3730a3">Need a hand?</div>
+        <p style="margin:5px 0 10px;font-size:12px;color:#4338ca;line-height:1.5">A 20-minute onboarding call gets most labs live the same day.</p>
+        <span style="display:inline-block;font-size:12px;font-weight:600;color:#3730a3;background:#fff;border:1px solid #c7d2fe;border-radius:8px;padding:8px 13px">Book onboarding call</span>
+      </div>
+    </div>
+  </div>
+</div>
+</div>
+
+<!-- ===================== 3b: PRICING 1180 ===================== -->
+<div class="dv-opt" id="3b">
+<div class="dv-olabel"><a class="dv-oid" href="#3b">3b</a>Pricing — desktop 1180px · same software everywhere, the tier is the signed BAA chain</div>
+<div class="dv-card" style="width:1180px;background:#f8fafc;font-family:'IBM Plex Sans',sans-serif;color:#0f172a" data-screen-label="Pricing">
+
+  <!-- Nav -->
+  <div style="display:flex;align-items:center;gap:26px;padding:16px 36px;background:#fff;border-bottom:1px solid #e2e8f0">
+    <div style="display:flex;align-items:center;gap:9px">
+      <div style="width:28px;height:28px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+        <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path></svg>
+      </div>
+      <span style="font-weight:700;font-size:15px;letter-spacing:-.01em">MedLab AI</span>
+    </div>
+    <span style="font-size:13px;color:#475569;font-weight:500">How it works</span>
+    <span style="font-size:13px;color:#475569;font-weight:500">Compliance</span>
+    <span style="font-size:13px;color:#0f172a;font-weight:700">Pricing</span>
+    <div style="margin-left:auto;display:flex;gap:9px;align-items:center">
+      <span style="font-size:13px;font-weight:600;color:#475569;padding:8px 14px">Sign in</span>
+      <span style="font-size:13px;font-weight:600;color:#fff;background:#4f46e5;border-radius:8px;padding:9px 16px">Book a demo</span>
+    </div>
+  </div>
+
+  <!-- Heading -->
+  <div style="padding:44px 36px 8px;text-align:center">
+    <h1 style="margin:0;font-size:36px;font-weight:700;letter-spacing:-.025em">Per-location pricing. The tier is the paperwork.</h1>
+    <p style="margin:10px auto 0;font-size:15px;color:#475569;max-width:620px;line-height:1.6">Every plan runs the same engine — guardrails, whitelist-only writes, zero persisted transcripts. Tiers differ in the signed compliance chain behind it.</p>
+    <div style="display:inline-flex;gap:4px;background:#f1f5f9;border:1px solid #e2e8f0;border-radius:100px;padding:4px;margin-top:16px">
+      <span style="font-size:12px;font-weight:600;color:#0f172a;background:#fff;border-radius:100px;padding:6px 16px;box-shadow:0 1px 2px rgba(15,23,42,.08)">Monthly</span>
+      <span style="font-size:12px;font-weight:600;color:#64748b;border-radius:100px;padding:6px 16px">Annual — 10% off</span>
+    </div>
+  </div>
+
+  <!-- Tier cards -->
+  <div style="display:grid;grid-template-columns:1fr 1fr 1fr;gap:16px;padding:28px 36px 8px;align-items:start">
+    <sc-for list="{{ tiers }}" as="tr" hint-placeholder-count="3">
+      <div style="background:#fff;border:{{ tr.cardBorder }};border-radius:16px;padding:24px;box-shadow:{{ tr.cardShadow }};position:relative">
+        <sc-if value="{{ tr.hot }}" hint-placeholder-val="{{ false }}">
+          <span style="position:absolute;top:-11px;left:50%;transform:translateX(-50%);font:600 10px 'IBM Plex Mono',monospace;color:#fff;background:#4f46e5;border-radius:100px;padding:4px 12px;letter-spacing:.5px;white-space:nowrap">MOST LABS</span>
+        </sc-if>
+        <div style="font-size:14.5px;font-weight:700">{{ tr.name }}</div>
+        <div style="margin-top:8px"><span style="font-size:32px;font-weight:700;letter-spacing:-.03em">{{ tr.price }}</span> <span style="font-size:12.5px;color:#64748b">{{ tr.per }}</span></div>
+        <p style="margin:8px 0 14px;font-size:12.5px;color:#64748b;line-height:1.5;min-height:38px">{{ tr.tagline }}</p>
+        <span style="display:block;text-align:center;font-size:13px;font-weight:600;color:{{ tr.ctaFg }};background:{{ tr.ctaBg }};border:1px solid {{ tr.ctaBorder }};border-radius:9px;padding:11px">{{ tr.cta }}</span>
+        <div style="margin-top:16px;display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ tr.features }}" as="ft" hint-placeholder-count="6">
+            <div style="display:flex;gap:8px;align-items:flex-start">
+              <span style="width:15px;height:15px;border-radius:50%;background:#dcfce7;color:#16a34a;display:grid;place-items:center;font-size:9px;font-weight:700;flex:none;margin-top:1px">✓</span>
+              <span style="font-size:12.5px;color:#334155;line-height:1.45">{{ ft.f }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </sc-for>
+  </div>
+
+  <!-- BAA chain comparison -->
+  <div style="padding:36px 36px 12px">
+    <div style="text-align:center;margin-bottom:16px">
+      <div style="font-size:19px;font-weight:700;letter-spacing:-.02em">The BAA chain, by tier</div>
+      <div style="font-size:12.5px;color:#64748b;margin-top:3px">What's actually signed — because technical controls ≠ compliance.</div>
+    </div>
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:14px;overflow:hidden;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+      <div style="display:grid;grid-template-columns:1.5fr 1fr 1.15fr 1.3fr;gap:0 14px;padding:11px 20px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em"></span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">STANDARD</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#4338ca;letter-spacing:.07em">COVERED ENTITY</span>
+        <span style="font:700 10px 'IBM Plex Mono',monospace;color:#64748b;letter-spacing:.07em">NETWORK</span>
+      </div>
+      <sc-for list="{{ baaRows }}" as="br" hint-placeholder-count="6">
+        <div style="display:grid;grid-template-columns:1.5fr 1fr 1.15fr 1.3fr;gap:0 14px;padding:11px 20px;border-bottom:1px solid #f1f5f9;align-items:center">
+          <span style="font-size:12.5px;font-weight:600;color:#334155">{{ br.item }}</span>
+          <sc-for list="{{ br.cells }}" as="cl" hint-placeholder-count="3">
+            <span style="font-size:12px;color:{{ cl.fg }};font-weight:{{ cl.w }}">{{ cl.text }}</span>
+          </sc-for>
+        </div>
+      </sc-for>
+    </div>
+    <div style="display:flex;align-items:center;gap:8px;justify-content:center;margin-top:14px">
+      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path></svg>
+      <span style="font-size:11px;color:#94a3b8">Standard is for sandboxes and pre-launch evaluation — production patient traffic belongs on Covered Entity or Network.</span>
+    </div>
+  </div>
+
+  <div style="padding:16px 36px;border-top:1px solid #e2e8f0;background:#fff;display:flex;justify-content:space-between;font-size:11.5px;color:#94a3b8;margin-top:20px">
+    <span style="font-family:'IBM Plex Mono',monospace">MedLab AI Receptionist</span><span>Questions? hello@medlab.ai</span>
+  </div>
+</div>
+</div>
+
+</div>
+<p class="dv-next">Try next: "Scheduling week view" · "onboarding step 3 — test catalog editor" · "public compliance one-pager" · "multi-location roll-up dashboard for Network tier"</p>
+</section>
+</x-dc>
+<script type="text/x-dc" data-dc-script>
+class Component extends DCLogic {
+  state = { labName: '', contact: '', phone: '', submitted: false };
+
+  renderVals() {
+    // Status taxonomy mirrors the console (MedLab Dashboard.dc.html BADGES)
+    // and the engine's real outcomes: booked / transferred / guardrail.
+    const B = {
+      booked:    { badgeBg: '#eef2ff', badgeFg: '#4338ca', badgeBorder: '#c7d2fe', status: 'Booked' },
+      transfer:  { badgeBg: '#eff6ff', badgeFg: '#1d4ed8', badgeBorder: '#bfdbfe', status: 'Transferred to Lab Tech' },
+      guardrail: { badgeBg: '#fef2f2', badgeFg: '#b91c1c', badgeBorder: '#fecaca', status: 'Guardrail Redacted' },
+      rejected:  { badgeBg: '#fff7ed', badgeFg: '#c2410c', badgeBorder: '#fed7aa', status: 'Rejected by Guardrail' }
+    };
+    const CH = {
+      voice: { channel: 'VOICE', chBg: '#eef2ff', chFg: '#4338ca' },
+      wa:    { channel: 'WA',    chBg: '#f0fdf4', chFg: '#15803d' }
+    };
+    const mkCall = (time, name, phone, ch, test, kind, dur, summary) => Object.assign(
+      { time, name, phone, test, dur, summary, rowBg: kind === 'guardrail' ? '#fef2f2' : 'transparent' },
+      B[kind], CH[ch]
+    );
+
+    const T = {
+      red:    { typeBg: '#fef2f2', typeFg: '#b91c1c', typeBorder: '#fecaca' },
+      orange: { typeBg: '#fff7ed', typeFg: '#c2410c', typeBorder: '#fed7aa' },
+      gray:   { typeBg: '#f1f5f9', typeFg: '#475569', typeBorder: '#e2e8f0' }
+    };
+    const mkEvt = (id, time, type, tone, tool, tail, action) => Object.assign(
+      { id, time, type, tool, tail, action }, T[tone]
+    );
+
+    return {
+      // ── landing form ──
+      noop: (e) => e.preventDefault(),
+      notSubmitted: !this.state.submitted,
+      submitted: this.state.submitted,
+      labName: this.state.labName, contact: this.state.contact, phone: this.state.phone,
+      phoneDisplay: this.state.phone || 'your number',
+      onLabName: (e) => this.setState({ labName: e.target.value }),
+      onContact: (e) => this.setState({ contact: e.target.value }),
+      onPhone: (e) => this.setState({ phone: e.target.value }),
+      onSubmit: () => this.setState({ submitted: true }),
+
+      // ── landing content ──
+      pains: [
+        { icon: '✕', iconBg: '#fef2f2', iconFg: '#b91c1c', title: 'Missed patient calls',
+          body: '62% of callers who hit voicemail never call back. Every missed draw is revenue and a delayed result for a physician.' },
+        { icon: '◔', iconBg: '#fff7ed', iconFg: '#c2410c', title: 'Front desk doing two jobs',
+          body: 'Phlebotomists answering phones between draws means longer waits on both sides. Let staff work the chairs.' },
+        { icon: '⚠', iconBg: '#eef2ff', iconFg: '#4338ca', title: 'PHI on sticky notes',
+          body: 'Voicemail boxes and paper notes are where HIPAA incidents start. The AI collects four fields and nothing else.' }
+      ],
+      metrics: [
+        { value: '131/day', label: 'calls answered' },
+        { value: '94%', label: 'resolved end-to-end by AI' },
+        { value: '86.4 hrs', label: 'front-desk time saved / mo' },
+        { value: '6.7×', label: 'ROI on the $297 plan' }
+      ],
+
+      // ── call logs tab ──
+      filters: [
+        { label: 'All statuses', bg: '#0f172a', fg: '#f8fafc', border: '#0f172a' },
+        { label: 'Booked', bg: '#eef2ff', fg: '#4338ca', border: '#c7d2fe' },
+        { label: 'Transferred', bg: '#eff6ff', fg: '#1d4ed8', border: '#bfdbfe' },
+        { label: 'Guardrail events', bg: '#fef2f2', fg: '#b91c1c', border: '#fecaca' },
+        { label: 'Rejected', bg: '#fff7ed', fg: '#c2410c', border: '#fed7aa' }
+      ],
+      logCalls: [
+        mkCall('10:50', 'Hank Dolan', '••• 3362', 'voice', 'Basic Metabolic Panel', 'transfer', '2m 02s',
+          'Billing dispute question — warm-transferred to office manager with account context.'),
+        mkCall('10:49', 'Priya Raman', '••• 1148', 'wa', 'Vitamin D, 25-OH', 'booked', '0m 58s',
+          'Routine draw booked 4:00 PM; verified requisition against physician e-order.'),
+        mkCall('10:42', 'Alex Thompson', '••• 4821', 'voice', 'PCR — Respiratory Panel', 'guardrail', '2m 31s',
+          'Caller volunteered a diagnosis mid-booking. PHI intercepted and redacted in-stream; booking completed via secure flow.'),
+        mkCall('10:37', 'Maria Rivera', '••• 3307', 'voice', 'Lipid Panel (Fasting)', 'booked', '1m 48s',
+          'Verified 12-hour fasting window; booked tomorrow 7:30 AM and sent prep instructions by SMS.'),
+        mkCall('10:31', 'James Okafor', '••• 9112', 'wa', 'CBC w/ Differential', 'booked', '1m 12s',
+          'Standing order on file; booked 11:30 AM walk-in slot and confirmed insurance unchanged.'),
+        mkCall('10:24', 'David Chen', '••• 5540', 'voice', 'HbA1c', 'transfer', '3m 05s',
+          'Clinical question about medication interference — outside AI scope, warm-transferred with context note.'),
+        mkCall('10:09', 'Robert Alvarez', '••• 2216', 'voice', 'Results Inquiry', 'rejected', '1m 57s',
+          'Requested results by phone. Guardrail declined per policy; routed to patient portal + ordering physician.'),
+        mkCall('9:58', 'Kim Nguyen', '••• 6633', 'wa', 'COVID-19 PCR', 'booked', '1m 05s',
+          'Pre-travel PCR with 24-hr turnaround; booked 9:30 AM tomorrow with expedited flag.')
+      ],
+
+      // ── compliance tab ──
+      compKpis: [
+        { label: 'GUARDRAIL EVENTS · TODAY', value: '3', sub: 'all intercepted pre-storage', color: '#b91c1c' },
+        { label: 'FREE-TEXT PHI STORED', value: '0', sub: 'whitelist-only writes', color: '#15803d' },
+        { label: 'FIELDS PER BOOKING', value: '4', sub: 'name · phone · test · time', color: '#0f172a' },
+        { label: 'TRANSCRIPTS PERSISTED', value: 'None', sub: 'in-memory, 15-min TTL', color: '#15803d' }
+      ],
+      auditEvents: [
+        mkEvt('GRD-2026-07-04-0142', '10:42', 'PHI redacted', 'red', 'book_appointment', '4821',
+          'Health-history content in patient_name — rejected, refusal relayed to caller, nothing stored.'),
+        mkEvt('GRD-2026-07-04-0141', '10:09', 'Results request refused', 'orange', 'policy_guardrail', '2216',
+          'Caller asked for result values by phone — declined per policy, routed to portal.'),
+        mkEvt('GRD-2026-07-04-0139', '9:44', 'Field stripped', 'gray', 'book_appointment', '7789',
+          'Model hallucinated insurance_id argument — silently dropped before execution.'),
+        mkEvt('GRD-2026-07-04-0136', '9:12', 'PHI redacted', 'red', 'check_availability', '5011',
+          'Medication mention in tool argument — call blocked at guard layer, booking restarted clean.'),
+        mkEvt('GRD-2026-07-04-0133', '8:51', 'Field stripped', 'gray', 'book_appointment', '2044',
+          'Non-whitelisted date_of_birth argument dropped; booking proceeded with four allowed fields.'),
+        mkEvt('GRD-2026-07-03-0129', '17:20', 'PHI redacted', 'red', 'book_appointment', '8873',
+          'Diagnosis phrasing detected in patient_name — hard rejection, deflection script spoken.')
+      ],
+      controls: [
+        { name: 'sanitizeAppointment()', desc: 'Whitelist-only write path — the sole route to the database.' },
+        { name: 'guardToolArgs()', desc: 'Every model tool call intercepted; unknown fields stripped, health content rejected.' },
+        { name: 'safeLog()', desc: 'All runtime logs pass PHI redaction — SSNs, DOBs, member IDs, phone tails.' },
+        { name: 'Session TTL sweep', desc: 'Conversation state is RAM-only, evicted after 15 idle minutes.' }
+      ],
+      baas: [
+        { name: 'Twilio (voice + WhatsApp)', state: 'SIGNED', dot: '✓', dotBg: '#dcfce7', dotFg: '#16a34a', stFg: '#15803d' },
+        { name: 'Hosting provider', state: 'SIGNED', dot: '✓', dotBg: '#dcfce7', dotFg: '#16a34a', stFg: '#15803d' },
+        { name: 'Model API (Gemini → Vertex AI)', state: 'VERIFYING', dot: '!', dotBg: '#fff7ed', dotFg: '#c2410c', stFg: '#c2410c' },
+        { name: 'Tenant BAA (this lab)', state: 'SIGNED', dot: '✓', dotBg: '#dcfce7', dotFg: '#16a34a', stFg: '#15803d' }
+      ]
+    };
+  }
+}
+</script>
+</body>
+</html>

@@ -1,0 +1,609 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="anonymous">
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+  html,body{margin:0;padding:0;background:#f1f5f9;font-family:'IBM Plex Sans',system-ui,sans-serif;color:#0f172a;-webkit-font-smoothing:antialiased}
+  @keyframes mlPulse{0%,100%{opacity:1}50%{opacity:.35}}
+  @keyframes mlRowIn{from{opacity:0;transform:translateY(-6px)}to{opacity:1;transform:none}}
+  ::selection{background:#c7d2fe}
+</style>
+</helmet>
+
+<!-- ══════════════ TOP BAR ══════════════ -->
+<div data-screen-label="Dashboard" style="min-height:100vh;display:flex;flex-direction:column">
+<header style="background:#0f172a;color:#f8fafc;position:sticky;top:0;z-index:40;box-shadow:0 1px 0 rgba(15,23,42,.9)">
+  <div style="max-width:1440px;margin:0 auto;padding:0 24px;height:60px;display:flex;align-items:center;gap:16px">
+    <div style="display:flex;align-items:center;gap:11px;min-width:0">
+      <div style="width:32px;height:32px;border-radius:8px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center;flex:none">
+        <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.2" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path><path d="M7.5 3h9"></path><path d="M8 14h8"></path></svg>
+      </div>
+      <div style="line-height:1.15">
+        <div style="font-size:14.5px;font-weight:700;letter-spacing:-.01em">Meridian Diagnostics</div>
+        <div style="font-size:10.5px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">AI RECEPTIONIST · CONSOLE</div>
+      </div>
+    </div>
+    <nav style="display:flex;gap:2px;margin-left:20px">
+      <span style="font-size:13px;font-weight:600;padding:6px 12px;border-radius:6px;background:rgba(99,102,241,.22);color:#c7d2fe">Overview</span>
+      <span style="font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Call Logs</span>
+      <span style="font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Scheduling</span>
+      <span style="font-size:13px;font-weight:500;padding:6px 12px;border-radius:6px;color:#94a3b8">Compliance</span>
+    </nav>
+    <div style="margin-left:auto;display:flex;align-items:center;gap:14px">
+      <div style="display:flex;align-items:center;gap:7px;background:rgba(16,185,129,.14);border:1px solid rgba(16,185,129,.35);padding:5px 11px;border-radius:999px">
+        <span style="width:7px;height:7px;border-radius:50%;background:#34d399;animation:mlPulse 1.6s ease-in-out infinite"></span>
+        <span style="font-size:11.5px;font-weight:600;color:#6ee7b7;font-family:'IBM Plex Mono',monospace">{{ lineStatus }}</span>
+      </div>
+      <div style="font-size:12px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">{{ clock }}</div>
+      <div style="width:32px;height:32px;border-radius:50%;background:#334155;display:grid;place-items:center;font-size:12px;font-weight:700;color:#cbd5e1">DR</div>
+    </div>
+  </div>
+</header>
+
+<main style="max-width:1440px;margin:0 auto;padding:24px;width:100%;box-sizing:border-box;flex:1">
+
+  <!-- page heading -->
+  <div style="display:flex;align-items:flex-end;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:18px">
+    <div>
+      <h1 style="margin:0;font-size:21px;font-weight:700;letter-spacing:-.02em">Front-Desk Operations</h1>
+      <p style="margin:3px 0 0;font-size:13px;color:#64748b">Friday, July 4, 2026 · Draw station #1 — Midtown · 4 phlebotomists on duty</p>
+    </div>
+    <div style="display:flex;gap:8px;align-items:center">
+      <span style="font-size:12px;color:#64748b;background:#fff;border:1px solid #e2e8f0;padding:7px 12px;border-radius:8px;font-weight:500">Plan: Pro — $297/mo</span>
+      <button onClick="{{ exportReport }}" style="font-size:12px;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;padding:7px 12px;border-radius:8px;font-weight:600;cursor:pointer;font-family:'IBM Plex Sans',sans-serif" style-hover="background:#e0e7ff">Export daily report</button>
+    </div>
+  </div>
+
+  <!-- ══════════════ 1 · METRIC CARDS ══════════════ -->
+  <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(230px,1fr));gap:14px;margin-bottom:20px">
+
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 18px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11.5px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em">Total Calls Answered</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#6366f1" stroke-width="2" stroke-linecap="round"><path d="M22 16.9v3a2 2 0 0 1-2.2 2 19.8 19.8 0 0 1-8.6-3.1 19.5 19.5 0 0 1-6-6A19.8 19.8 0 0 1 2.1 4.2 2 2 0 0 1 4.1 2h3a2 2 0 0 1 2 1.7c.13.97.36 1.9.7 2.8a2 2 0 0 1-.45 2.1L8.1 9.9a16 16 0 0 0 6 6l1.3-1.3a2 2 0 0 1 2.1-.45c.9.34 1.83.57 2.8.7a2 2 0 0 1 1.7 2.05z"></path></svg>
+      </div>
+      <div style="font-size:32px;font-weight:700;letter-spacing:-.03em;margin-top:8px;font-variant-numeric:tabular-nums">{{ callsAnswered }}</div>
+      <div style="font-size:12px;color:#475569;margin-top:4px"><strong style="color:#4f46e5;font-weight:600">94%</strong> resolved end-to-end by AI · 0 missed</div>
+    </div>
+
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 18px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11.5px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em">Appointments Booked Today</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#2563eb" stroke-width="2" stroke-linecap="round"><rect x="3" y="4" width="18" height="18" rx="2"></rect><path d="M16 2v4M8 2v4M3 10h18"></path></svg>
+      </div>
+      <div style="font-size:32px;font-weight:700;letter-spacing:-.03em;margin-top:8px;font-variant-numeric:tabular-nums">{{ apptsBooked }}</div>
+      <div style="font-size:12px;color:#475569;margin-top:4px">Peak volume <strong style="font-weight:600;color:#1d4ed8">9:00–11:00 AM</strong> · 12 fasting draws</div>
+    </div>
+
+    <div style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:18px 18px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11.5px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em">Front-Desk Hours Saved</span>
+        <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="#0d9488" stroke-width="2" stroke-linecap="round"><circle cx="12" cy="12" r="10"></circle><path d="M12 6v6l4 2"></path></svg>
+      </div>
+      <div style="font-size:32px;font-weight:700;letter-spacing:-.03em;margin-top:8px;font-variant-numeric:tabular-nums">86.4 <span style="font-size:16px;font-weight:600;color:#64748b">hrs / mo</span></div>
+      <div style="font-size:12px;color:#475569;margin-top:4px">≈ $1,988 staffing value — <strong style="color:#0d9488;font-weight:600">6.7× ROI</strong> on the $297/mo plan</div>
+    </div>
+
+    <div style="background:linear-gradient(180deg,#f0fdf4,#fff 70%);border:1px solid #bbf7d0;border-radius:12px;padding:18px 18px 16px;box-shadow:0 1px 2px rgba(15,23,42,.05)">
+      <div style="display:flex;justify-content:space-between;align-items:center">
+        <span style="font-size:11.5px;font-weight:600;color:#15803d;text-transform:uppercase;letter-spacing:.06em">Compliance Status</span>
+        <svg width="18" height="18" viewBox="0 0 24 24" fill="#16a34a" stroke="#16a34a" stroke-width="1"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path><path d="M8.5 12l2.5 2.5 4.5-4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+      </div>
+      <div style="font-size:20px;font-weight:700;letter-spacing:-.02em;margin-top:10px;color:#14532d">100% PHI-Sanitized</div>
+      <div style="display:inline-flex;align-items:center;gap:6px;margin-top:7px;background:#dcfce7;border:1px solid #86efac;border-radius:999px;padding:4px 10px">
+        <span style="width:6px;height:6px;border-radius:50%;background:#16a34a"></span>
+        <span style="font-size:11px;font-weight:600;color:#166534;font-family:'IBM Plex Mono',monospace">HIPAA GUARDRAILS ACTIVE</span>
+      </div>
+    </div>
+  </div>
+
+  <!-- ══════════════ MAIN PANELS ══════════════ -->
+  <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+
+    <!-- 2 · LIVE PATIENT CALL FEED -->
+    <section style="flex:999 1 560px;min-width:0;background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.05);overflow:hidden">
+      <div style="display:flex;align-items:center;gap:10px;padding:15px 18px;border-bottom:1px solid #e2e8f0">
+        <span style="width:8px;height:8px;border-radius:50%;background:#4f46e5;animation:mlPulse 1.6s ease-in-out infinite;flex:none"></span>
+        <h2 style="margin:0;font-size:14.5px;font-weight:700;letter-spacing:-.01em">Live Patient Call Feed</h2>
+        <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:#64748b;background:#f1f5f9;border-radius:6px;padding:3px 8px">{{ feedCount }} calls · last 60 min</span>
+        <span style="margin-left:auto;font-size:12px;font-weight:600;color:#4f46e5">View all logs →</span>
+      </div>
+
+      <div style="display:grid;grid-template-columns:170px 150px 130px minmax(200px,1fr);gap:0 12px;padding:9px 18px;background:#f8fafc;border-bottom:1px solid #e2e8f0">
+        <span style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em">Patient</span>
+        <span style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em">Requested Test</span>
+        <span style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em">Status</span>
+        <span style="font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em">AI Summary</span>
+      </div>
+
+      <sc-for list="{{ calls }}" as="c" hint-placeholder-count="8">
+        <div onClick="{{ c.open }}" style="display:grid;grid-template-columns:170px 150px 130px minmax(200px,1fr);gap:0 12px;padding:12px 18px;border-bottom:1px solid #f1f5f9;cursor:pointer;background:{{ c.rowBg }};animation:mlRowIn .35s ease" style-hover="background:#f8fafc">
+          <div style="min-width:0">
+            <div style="font-size:13px;font-weight:600;color:#0f172a;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</div>
+            <div style="font-size:11px;color:#94a3b8;font-family:'IBM Plex Mono',monospace;margin-top:1px">{{ c.phone }} · {{ c.time }}</div>
+          </div>
+          <div style="font-size:12.5px;color:#334155;font-weight:500;align-self:center;min-width:0">{{ c.test }}</div>
+          <div style="align-self:center">
+            <span style="display:inline-flex;align-items:center;gap:5px;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ c.badgeBg }};color:{{ c.badgeFg }};border:1px solid {{ c.badgeBorder }};white-space:nowrap">
+              <span style="width:5px;height:5px;border-radius:50%;background:{{ c.badgeFg }};flex:none"></span>{{ c.status }}
+            </span>
+          </div>
+          <div style="font-size:12px;color:#64748b;line-height:1.45;align-self:center;min-width:0">{{ c.summary }}</div>
+        </div>
+      </sc-for>
+
+      <div style="display:flex;align-items:center;gap:8px;padding:11px 18px;background:#fffbeb;border-top:1px solid #fde68a">
+        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#b45309" stroke-width="2.2" stroke-linecap="round"><path d="M12 9v4M12 17h.01"></path><path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z"></path></svg>
+        <span style="font-size:12px;color:#92400e">Rows marked <strong style="font-weight:700">Guardrail Redacted</strong> contain PHI the engine intercepted before storage. Click any row to open the sanitized transcript.</span>
+      </div>
+    </section>
+
+    <!-- 3 · CAPACITY & LAB CALENDAR -->
+    <aside style="flex:1 1 320px;max-width:420px;min-width:300px;display:flex;flex-direction:column;gap:16px">
+      <section style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;box-shadow:0 1px 2px rgba(15,23,42,.05);overflow:hidden">
+        <div style="padding:15px 18px;border-bottom:1px solid #e2e8f0;display:flex;align-items:center;justify-content:space-between">
+          <div>
+            <h2 style="margin:0;font-size:14.5px;font-weight:700;letter-spacing:-.01em">Draw-Station Capacity</h2>
+            <p style="margin:2px 0 0;font-size:11.5px;color:#64748b">Today · slots enforced by AI at booking time</p>
+          </div>
+          <span style="font-size:11px;font-family:'IBM Plex Mono',monospace;color:#3730a3;background:#eef2ff;border:1px solid #c7d2fe;border-radius:6px;padding:3px 8px">4 CHAIRS</span>
+        </div>
+        <div style="padding:8px 10px">
+          <sc-for list="{{ slots }}" as="s" hint-placeholder-count="8">
+            <div style="display:flex;align-items:center;gap:12px;padding:9px 8px;border-radius:8px" style-hover="background:#f8fafc">
+              <span style="font-size:12px;font-weight:600;font-family:'IBM Plex Mono',monospace;color:#334155;width:66px;flex:none">{{ s.time }}</span>
+              <div style="display:flex;gap:4px;flex:none">
+                <sc-for list="{{ s.dots }}" as="d" hint-placeholder-count="4">
+                  <span style="width:13px;height:13px;border-radius:50%;background:{{ d.bg }};border:1px solid {{ d.border }};box-shadow:{{ d.glow }}"></span>
+                </sc-for>
+              </div>
+              <span style="font-size:11px;color:#94a3b8;font-family:'IBM Plex Mono',monospace;flex:none">{{ s.count }}</span>
+              <span style="margin-left:auto;font-size:11px;font-weight:600;padding:3px 9px;border-radius:999px;background:{{ s.tagBg }};color:{{ s.tagFg }};border:1px solid {{ s.tagBorder }};white-space:nowrap">{{ s.tag }}</span>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display:flex;gap:14px;padding:11px 18px;border-top:1px solid #e2e8f0;background:#f8fafc">
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:50%;background:#4f46e5"></span>Booked</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:50%;background:#fff;border:1px solid #cbd5e1"></span>Available</span>
+          <span style="display:flex;align-items:center;gap:6px;font-size:11px;color:#64748b"><span style="width:10px;height:10px;border-radius:50%;background:repeating-linear-gradient(45deg,#e2e8f0 0 2px,#f8fafc 2px 4px);border:1px solid #e2e8f0"></span>Blocked — cleaning window</span>
+        </div>
+      </section>
+
+      <section style="background:#eef2ff;border:1px solid #c7d2fe;border-radius:12px;padding:15px 18px">
+        <div style="display:flex;align-items:center;gap:8px">
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4338ca" stroke-width="2" stroke-linecap="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path></svg>
+          <h3 style="margin:0;font-size:13px;font-weight:700;color:#3730a3">Constraint enforcement</h3>
+        </div>
+        <p style="margin:7px 0 0;font-size:12px;line-height:1.55;color:#4338ca">The AI never overbooks: it reads live phlebotomist capacity before offering a slot, holds fasting draws to morning windows, and routes STAT orders directly to the lab tech line.</p>
+      </section>
+    </aside>
+  </div>
+
+  <!-- ══════════════ MOBILE COMPANION VIEW ══════════════ -->
+  <sc-if value="{{ showMobile }}" hint-placeholder-val="{{ true }}">
+    <div data-screen-label="Mobile view" style="margin-top:36px">
+      <div style="display:flex;align-items:baseline;gap:10px;margin-bottom:14px">
+        <h2 style="margin:0;font-size:16px;font-weight:700;letter-spacing:-.01em">Mobile companion view</h2>
+        <span style="font-size:12px;color:#64748b">Same data, 390px viewport — for lab directors on the floor</span>
+      </div>
+      <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:flex-start">
+        <div style="width:390px;max-width:100%;background:#fff;border:1px solid #e2e8f0;border-radius:22px;overflow:hidden;box-shadow:0 8px 24px rgba(15,23,42,.08)">
+          <div style="background:#0f172a;color:#f8fafc;padding:14px 18px 12px">
+            <div style="display:flex;align-items:center;justify-content:space-between">
+              <div style="display:flex;align-items:center;gap:8px">
+                <div style="width:24px;height:24px;border-radius:6px;background:linear-gradient(135deg,#4f46e5,#2563eb);display:grid;place-items:center">
+                  <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#fff" stroke-width="2.4" stroke-linecap="round"><path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3"></path></svg>
+                </div>
+                <span style="font-size:13px;font-weight:700">Meridian AI</span>
+              </div>
+              <span style="display:flex;align-items:center;gap:5px;font-size:10px;font-weight:600;color:#6ee7b7;font-family:'IBM Plex Mono',monospace"><span style="width:6px;height:6px;border-radius:50%;background:#34d399;animation:mlPulse 1.6s ease-in-out infinite"></span>LIVE</span>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:1fr 1fr;gap:10px;padding:14px 16px 4px">
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 12px">
+              <div style="font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em">Calls answered</div>
+              <div style="font-size:22px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums">{{ callsAnswered }}</div>
+              <div style="font-size:10.5px;color:#4f46e5;font-weight:600">94% by AI</div>
+            </div>
+            <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:11px 12px">
+              <div style="font-size:10px;font-weight:600;color:#64748b;text-transform:uppercase;letter-spacing:.06em">Booked today</div>
+              <div style="font-size:22px;font-weight:700;margin-top:3px;font-variant-numeric:tabular-nums">{{ apptsBooked }}</div>
+              <div style="font-size:10.5px;color:#1d4ed8;font-weight:600">Peak 9–11 AM</div>
+            </div>
+          </div>
+          <div style="margin:10px 16px 0;display:flex;align-items:center;gap:7px;background:#f0fdf4;border:1px solid #bbf7d0;border-radius:10px;padding:9px 12px">
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="#16a34a"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path><path d="M8.5 12l2.5 2.5 4.5-4.5" fill="none" stroke="#fff" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"></path></svg>
+            <span style="font-size:11px;font-weight:600;color:#166534">100% PHI-Sanitized · Guardrails active</span>
+          </div>
+          <div style="padding:14px 16px 6px;font-size:10.5px;font-weight:700;color:#64748b;text-transform:uppercase;letter-spacing:.07em">Recent calls</div>
+          <sc-for list="{{ mobileCalls }}" as="c" hint-placeholder-count="4">
+            <div onClick="{{ c.open }}" style="display:flex;align-items:center;gap:11px;padding:11px 16px;border-top:1px solid #f1f5f9;cursor:pointer;background:{{ c.rowBg }}" style-hover="background:#f8fafc">
+              <div style="width:34px;height:34px;border-radius:50%;background:#eef2ff;color:#4338ca;display:grid;place-items:center;font-size:12px;font-weight:700;flex:none">{{ c.initials }}</div>
+              <div style="min-width:0;flex:1">
+                <div style="font-size:12.5px;font-weight:600;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }} · {{ c.test }}</div>
+                <div style="font-size:11px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">{{ c.time }}</div>
+              </div>
+              <span style="font-size:10px;font-weight:600;padding:3px 8px;border-radius:999px;background:{{ c.badgeBg }};color:{{ c.badgeFg }};border:1px solid {{ c.badgeBorder }};white-space:nowrap;flex:none">{{ c.status }}</span>
+            </div>
+          </sc-for>
+          <div style="display:flex;justify-content:space-around;border-top:1px solid #e2e8f0;padding:10px 0;margin-top:6px">
+            <span style="font-size:10.5px;font-weight:700;color:#4f46e5">Overview</span>
+            <span style="font-size:10.5px;font-weight:500;color:#94a3b8">Calls</span>
+            <span style="font-size:10.5px;font-weight:500;color:#94a3b8">Calendar</span>
+            <span style="font-size:10.5px;font-weight:500;color:#94a3b8">Alerts</span>
+          </div>
+        </div>
+      </div>
+    </div>
+  </sc-if>
+</main>
+
+<footer style="border-top:1px solid #e2e8f0;background:#fff">
+  <div style="max-width:1440px;margin:0 auto;padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap">
+    <span style="font-size:11.5px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">MedLab AI Receptionist v2.4 · BAA on file · Audit log retention 6 yrs</span>
+    <span style="margin-left:auto;font-size:11.5px;color:#94a3b8">All transcripts sanitized at ingestion — raw audio is never persisted.</span>
+  </div>
+</footer>
+</div>
+
+<!-- ══════════════ 4 · CALL TRANSCRIPT MODAL ══════════════ -->
+<sc-if value="{{ modalOpen }}" hint-placeholder-val="{{ false }}">
+  <div data-screen-label="Transcript modal" onClick="{{ closeModal }}" style="position:fixed;inset:0;background:rgba(15,23,42,.55);backdrop-filter:blur(3px);z-index:100;display:grid;place-items:center;padding:20px">
+    <div onClick="{{ stop }}" style="width:640px;max-width:100%;max-height:88vh;overflow:auto;background:#fff;border-radius:14px;box-shadow:0 24px 60px rgba(15,23,42,.35);animation:mlRowIn .25s ease">
+      <div style="position:sticky;top:0;background:#fff;border-bottom:1px solid #e2e8f0;padding:16px 22px;display:flex;align-items:center;gap:12px;z-index:2">
+        <div>
+          <div style="font-size:15px;font-weight:700;letter-spacing:-.01em">Call transcript — {{ selName }}</div>
+          <div style="font-size:11.5px;color:#64748b;font-family:'IBM Plex Mono',monospace;margin-top:2px">{{ selPhone }} · {{ selTime }} · duration {{ selDuration }}</div>
+        </div>
+        <span style="margin-left:auto;display:inline-flex;align-items:center;gap:6px;font-size:11px;font-weight:600;padding:4px 10px;border-radius:999px;background:#dcfce7;color:#166534;border:1px solid #86efac;font-family:'IBM Plex Mono',monospace">PHI-SANITIZED</span>
+        <button onClick="{{ closeModal }}" style="border:none;background:#f1f5f9;color:#475569;width:30px;height:30px;border-radius:8px;font-size:15px;cursor:pointer;font-weight:600" style-hover="background:#e2e8f0">✕</button>
+      </div>
+
+      <div style="margin:16px 22px 0;display:flex;align-items:center;gap:12px;background:#0f172a;border-radius:11px;padding:12px 16px">
+        <span style="width:32px;height:32px;border-radius:50%;background:#4f46e5;display:grid;place-items:center;flex:none;cursor:pointer">
+          <svg width="12" height="12" viewBox="0 0 24 24" fill="#fff"><path d="M7 4l13 8-13 8V4z"></path></svg>
+        </span>
+        <div style="display:flex;align-items:center;gap:2.5px;flex:1;height:34px">
+          <sc-for list="{{ waveBars }}" as="w" hint-placeholder-count="40">
+            <span style="width:3px;height:{{ w.h }}px;border-radius:2px;background:{{ w.c }};flex:none"></span>
+          </sc-for>
+        </div>
+        <span style="font-size:11px;color:#94a3b8;font-family:'IBM Plex Mono',monospace;flex:none">00:00 / {{ selDuration }}</span>
+      </div>
+      <div style="margin:8px 22px 0;display:flex;align-items:center;gap:6px">
+        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" stroke-width="2" stroke-linecap="round"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path></svg>
+        <span style="font-size:10.5px;color:#94a3b8;font-family:'IBM Plex Mono',monospace">AUDIO IS COMPLIANCE-MASKED — REDACTED SEGMENTS ARE REPLACED WITH TONE</span>
+      </div>
+
+      <div style="padding:18px 22px;display:flex;flex-direction:column;gap:14px">
+        <sc-for list="{{ selLines }}" as="ln" hint-placeholder-count="5">
+          <div style="display:flex;gap:11px;flex-direction:{{ ln.dir }}">
+            <div style="width:30px;height:30px;border-radius:50%;background:{{ ln.avBg }};color:{{ ln.avFg }};display:grid;place-items:center;font-size:10px;font-weight:700;flex:none;font-family:'IBM Plex Mono',monospace">{{ ln.who }}</div>
+            <div style="max-width:78%">
+              <div style="font-size:10.5px;color:#94a3b8;font-weight:600;margin-bottom:3px;text-align:{{ ln.align }}">{{ ln.label }} · {{ ln.ts }}</div>
+              <div style="background:{{ ln.bubbleBg }};border:1px solid {{ ln.bubbleBorder }};border-radius:12px;padding:10px 13px;font-size:13px;line-height:1.55;color:#1e293b">{{ ln.pre }}<sc-if value="{{ ln.red }}" hint-placeholder-val="{{ false }}"><span style="display:inline-flex;align-items:center;gap:5px;background:#7f1d1d;color:#fecaca;border-radius:5px;padding:1px 8px;font-size:11px;font-weight:600;font-family:'IBM Plex Mono',monospace;vertical-align:baseline;text-decoration:line-through;text-decoration-color:#ef4444;text-decoration-thickness:2px;margin:0 2px">██████ {{ ln.red }}</span></sc-if>{{ ln.post }}</div>
+            </div>
+          </div>
+        </sc-for>
+
+        <sc-if value="{{ selHasRedaction }}" hint-placeholder-val="{{ false }}">
+          <div style="display:flex;gap:9px;align-items:flex-start;background:#fef2f2;border:1px solid #fecaca;border-radius:10px;padding:12px 14px">
+            <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#b91c1c" stroke-width="2.2" stroke-linecap="round" style="flex:none;margin-top:1px"><path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z"></path><path d="M9 12l6 0"></path></svg>
+            <div style="font-size:12px;line-height:1.55;color:#7f1d1d"><strong style="font-weight:700">Guardrail event logged.</strong> The caller volunteered protected health information. It was redacted in-stream — never written to disk, never sent to the model context, never audible in the recording. Event ID <span style="font-family:'IBM Plex Mono',monospace">GRD-2026-07-04-0142</span> is in the audit trail.</div>
+          </div>
+        </sc-if>
+      </div>
+
+      <div style="border-top:1px solid #e2e8f0;padding:13px 22px;display:flex;gap:9px;background:#f8fafc;border-radius:0 0 14px 14px">
+        <span style="font-size:12px;font-weight:600;color:#fff;background:#4f46e5;border-radius:8px;padding:8px 14px;cursor:pointer" style-hover="background:#4338ca">Confirm booking</span>
+        <span style="font-size:12px;font-weight:600;color:#334155;background:#fff;border:1px solid #cbd5e1;border-radius:8px;padding:8px 14px;cursor:pointer" style-hover="background:#f1f5f9">Flag for review</span>
+        <span onClick="{{ closeModal }}" style="margin-left:auto;font-size:12px;font-weight:600;color:#64748b;padding:8px 10px;cursor:pointer">Close</span>
+      </div>
+    </div>
+  </div>
+</sc-if>
+
+<!-- EXPORT TOAST -->
+<sc-if value="{{ toastVisible }}" hint-placeholder-val="{{ false }}">
+  <div style="position:fixed;right:22px;bottom:22px;z-index:120;display:flex;gap:11px;align-items:flex-start;background:#0f172a;color:#f8fafc;border-radius:12px;padding:14px 16px;box-shadow:0 12px 32px rgba(15,23,42,.35);width:340px;max-width:calc(100vw - 44px);animation:mlRowIn .3s ease">
+    <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke="#34d399" stroke-width="2.2" stroke-linecap="round" style="flex:none;margin-top:1px"><path d="M20 6L9 17l-5-5"></path></svg>
+    <div style="min-width:0">
+      <div style="font-size:13px;font-weight:700">Daily report exported</div>
+      <div style="font-size:11.5px;color:#94a3b8;line-height:1.5;margin-top:3px">HIPAA-sanitized manifest generated — <span style="font-family:'IBM Plex Mono',monospace;color:#c7d2fe">{{ toastFile }}</span> is downloading. 0 PHI fields included.</div>
+    </div>
+    <button onClick="{{ dismissToast }}" style="margin-left:auto;border:none;background:none;color:#64748b;font-size:13px;cursor:pointer;padding:0;flex:none">✕</button>
+  </div>
+</sc-if>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{
+  &quot;apiBase&quot;: { &quot;editor&quot;: &quot;text&quot;, &quot;default&quot;: &quot;http://localhost:3000&quot;, &quot;tsType&quot;: &quot;string&quot;, &quot;section&quot;: &quot;Backend&quot; },
+  &quot;liveSimulation&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Demo behavior&quot; },
+  &quot;showMobileView&quot;: { &quot;editor&quot;: &quot;boolean&quot;, &quot;default&quot;: true, &quot;tsType&quot;: &quot;boolean&quot;, &quot;section&quot;: &quot;Demo behavior&quot; }
+}">
+class Component extends DCLogic {
+  state = { selected: null, extraCalls: [], clock: "10:47:12 AM ET", toastVisible: false, toastFile: "",
+            connected: false, liveCalls: [], liveStats: { answered: 0, booked: 0 } };
+
+  static BADGES = {
+    booked:     { badgeBg: "#eef2ff", badgeFg: "#4338ca", badgeBorder: "#c7d2fe", status: "Booked" },
+    transfer:   { badgeBg: "#eff6ff", badgeFg: "#1d4ed8", badgeBorder: "#bfdbfe", status: "Transferred to Lab Tech" },
+    guardrail:  { badgeBg: "#fef2f2", badgeFg: "#b91c1c", badgeBorder: "#fecaca", status: "Guardrail Redacted" },
+    rejected:   { badgeBg: "#fff7ed", badgeFg: "#c2410c", badgeBorder: "#fed7aa", status: "Rejected by Guardrail" }
+  };
+
+  static AI = { who: "AI", label: "AI Medical Assistant", avBg: "#0f172a", avFg: "#a5b4fc", bubbleBg: "#f8fafc", bubbleBorder: "#e2e8f0", dir: "row", align: "left" };
+  static PT = { who: "PT", label: "Patient", avBg: "#eef2ff", avFg: "#4338ca", bubbleBg: "#eef2ff", bubbleBorder: "#c7d2fe", dir: "row-reverse", align: "right" };
+
+  line(base, ts, pre, red, post) {
+    return Object.assign({}, base, { ts: ts, pre: pre, red: red || "", post: post || "" });
+  }
+
+  baseCalls() {
+    const B = Component.BADGES, AI = Component.AI, PT = Component.PT, L = this.line.bind(this);
+    return [
+      { name: "Alex Thompson", initials: "AT", phone: "••• 4821", time: "10:42 AM", test: "PCR — Respiratory Panel", kind: "guardrail",
+        rowBg: "#fef2f2", duration: "2m 31s", hasRedaction: true,
+        summary: "Caller volunteered a diagnosis code mid-booking. PHI intercepted and redacted in-stream; appointment completed via secure flow.",
+        lines: [
+          L(AI, "00:04", "Thank you for calling Meridian Diagnostics. This is the AI medical assistant on a secure line. Let's get you booked. What test do you need?"),
+          L(PT, "00:11", "I need a PCR, my doctor thinks I have ", "VIOLATION BLOCKED BY ENGINE COMPLIANCE LAYER", "."),
+          L(AI, "00:19", "Understood — and just so you know, I don't need your diagnosis to book you, so that detail was intercepted before it was stored anywhere. Could you read me the order number printed at the top of the requisition?"),
+          L(PT, "00:31", "Sure, it's REQ-88413."),
+          L(AI, "00:36", "Found it — respiratory PCR panel, no fasting required. The earliest open chair is today at 10:30 AM, or I have 1:00 PM. Which works?"),
+          L(PT, "00:44", "10:30 is perfect."),
+          L(AI, "00:47", "You're booked for 10:30 AM at the Midtown draw station. Please bring a photo ID and your insurance card. A confirmation text is on its way to the number ending 4821.")
+        ] },
+      { name: "Maria Rivera", initials: "MR", phone: "••• 3307", time: "10:37 AM", test: "Lipid Panel (Fasting)", kind: "booked",
+        rowBg: "transparent", duration: "1m 48s", hasRedaction: false,
+        summary: "Verified 12-hour fasting window; booked tomorrow 7:30 AM and sent prep instructions by SMS.",
+        lines: [
+          L(AI, "00:04", "Thank you for calling Meridian Diagnostics. How can I help?"),
+          L(PT, "00:09", "I need to schedule a fasting lipid panel."),
+          L(AI, "00:14", "Fasting draws are held to morning slots so your 12-hour window lands overnight. Tomorrow I have 7:30 AM or 8:00 AM — which do you prefer?"),
+          L(PT, "00:23", "7:30, please."),
+          L(AI, "00:26", "Booked for 7:30 AM. Nothing but water after 7:30 tonight — I've texted the full prep checklist to the number ending 3307.")
+        ] },
+      { name: "James Okafor", initials: "JO", phone: "••• 9112", time: "10:31 AM", test: "CBC w/ Differential", kind: "booked",
+        rowBg: "transparent", duration: "1m 12s", hasRedaction: false,
+        summary: "Standing order on file; booked 11:30 AM walk-in slot and confirmed insurance is unchanged.",
+        lines: [
+          L(AI, "00:04", "Meridian Diagnostics, AI assistant speaking. How can I help?"),
+          L(PT, "00:08", "I have a standing order for a CBC — anything open this morning?"),
+          L(AI, "00:13", "Yes — I can seat you at 11:30 AM. Has your insurance changed since your last visit in May?"),
+          L(PT, "00:20", "No, same plan."),
+          L(AI, "00:22", "You're set for 11:30 AM. See you shortly.")
+        ] },
+      { name: "David Chen", initials: "DC", phone: "••• 5540", time: "10:24 AM", test: "HbA1c", kind: "transfer",
+        rowBg: "transparent", duration: "3m 05s", hasRedaction: false,
+        summary: "Clinical question about medication interference — outside AI scope, warm-transferred to lab tech with context note.",
+        lines: [
+          L(AI, "00:04", "Meridian Diagnostics, how can I help you today?"),
+          L(PT, "00:09", "I'm scheduled for an A1c — do I need to stop any of my medications beforehand?"),
+          L(AI, "00:16", "That's a clinical question I'm not permitted to answer. I'm connecting you to a lab technician now and passing along your appointment details — please hold, the wait is under a minute.")
+        ] },
+      { name: "Sara Patel", initials: "SP", phone: "••• 7789", time: "10:18 AM", test: "TSH + Free T4", kind: "booked",
+        rowBg: "transparent", duration: "1m 33s", hasRedaction: false,
+        summary: "Rescheduled from Monday to today 2:00 PM; original slot released back to capacity pool.",
+        lines: [
+          L(AI, "00:04", "Meridian Diagnostics, AI assistant. How can I help?"),
+          L(PT, "00:08", "I need to move my Monday thyroid panel — can I come in today instead?"),
+          L(AI, "00:13", "Yes — today I have 2:00 PM or 3:30 PM."),
+          L(PT, "00:18", "2 PM works."),
+          L(AI, "00:20", "Done. Monday's slot is released and you're confirmed for 2:00 PM today.")
+        ] },
+      { name: "Robert Alvarez", initials: "RA", phone: "••• 2216", time: "10:09 AM", test: "Results Inquiry", kind: "rejected",
+        rowBg: "transparent", duration: "1m 57s", hasRedaction: true,
+        summary: "Caller requested lab results over the phone. Guardrail declined per policy and routed to the patient portal + ordering physician.",
+        lines: [
+          L(AI, "00:04", "Meridian Diagnostics, how can I help?"),
+          L(PT, "00:08", "I had blood drawn Tuesday — can you just tell me if my ", "RESULT VALUES", " came back normal?"),
+          L(AI, "00:16", "I'm not able to release results by phone — that's a hard policy guardrail. Your results are available in the secure patient portal, and your ordering physician has been notified. I can text you the portal link now if that helps."),
+          L(PT, "00:28", "Yeah, send the link."),
+          L(AI, "00:30", "Sent to the number ending 2216. Is there anything else I can help with?")
+        ] },
+      { name: "Kim Nguyen", initials: "KN", phone: "••• 6633", time: "9:58 AM", test: "COVID-19 PCR", kind: "booked",
+        rowBg: "transparent", duration: "1m 05s", hasRedaction: false,
+        summary: "Pre-travel PCR with 24-hr turnaround requirement; booked 9:30 AM tomorrow with expedited processing flag.",
+        lines: [
+          L(AI, "00:04", "Meridian Diagnostics, AI assistant speaking."),
+          L(PT, "00:07", "I need a PCR test for travel — results within 24 hours."),
+          L(AI, "00:12", "Our expedited PCR guarantees results in 18 hours. Tomorrow 9:30 AM keeps you inside your window — shall I book it with the expedited flag?"),
+          L(PT, "00:21", "Yes please."),
+          L(AI, "00:23", "Booked and flagged. Bring your passport name exactly as it should appear on the report.")
+        ] },
+      { name: "Lena Brooks", initials: "LB", phone: "••• 0475", time: "9:51 AM", test: "Comprehensive Metabolic Panel", kind: "booked",
+        rowBg: "transparent", duration: "2m 10s", hasRedaction: false,
+        summary: "New patient intake completed; CMP booked 3:30 PM today and requisition verified against physician e-order.",
+        lines: [
+          L(AI, "00:04", "Meridian Diagnostics, how can I help you today?"),
+          L(PT, "00:08", "My doctor sent over an order for a metabolic panel — I've never been to your lab before."),
+          L(AI, "00:14", "Welcome — I see the e-order from Dr. Whitfield's office. I have 3:30 PM today open. No fasting is required for this panel as ordered."),
+          L(PT, "00:24", "3:30 works."),
+          L(AI, "00:26", "You're booked. I've texted directions and parking info to the number ending 0475.")
+        ] }
+    ];
+  }
+
+  componentDidMount() {
+    this._clockTimer = setInterval(() => {
+      const now = new Date();
+      this.setState({ clock: now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit", second: "2-digit" }) + " ET" });
+    }, 1000);
+
+    this.connectBackend();
+  }
+
+  // ── Live backend feed (medlab-engine SSE) ────────────────────────────
+  // Connects to GET {apiBase}/api/dashboard/events. On success the feed,
+  // counters and guardrail rows are driven by real engine events; if the
+  // engine is unreachable we fall back to the scripted demo simulation.
+  connectBackend() {
+    const base = String(this.props.apiBase ?? "http://localhost:3000").replace(/\/+$/, "");
+    if (typeof EventSource === "undefined") { this.startDemoSim(); return; }
+    let opened = false;
+    let es;
+    try { es = new EventSource(base + "/api/dashboard/events"); }
+    catch (e) { this.startDemoSim(); return; }
+    this._es = es;
+    es.onopen = () => {
+      opened = true;
+      clearInterval(this._simTimer);
+      this._simTimer = null;
+      this.setState({ connected: true, extraCalls: [] });
+    };
+    es.onmessage = (m) => {
+      try { this.ingestEvent(JSON.parse(m.data)); } catch (e) {}
+    };
+    es.onerror = () => {
+      // Never connected → engine is down: demo mode. After a successful
+      // open, EventSource auto-reconnects on its own; stay in live mode.
+      if (!opened) { es.close(); this.startDemoSim(); }
+    };
+  }
+
+  ingestEvent(ev) {
+    const time = new Date(ev.ts).toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" });
+    const phone = "••• " + (ev.phone_tail || "————");
+    if (ev.type === "call.answered") {
+      this.setState(s => ({ liveStats: { answered: s.liveStats.answered + 1, booked: s.liveStats.booked } }));
+      return;
+    }
+    let row = null;
+    if (ev.type === "booking.confirmed") {
+      const name = ev.data.patient_name || "Caller";
+      row = { name: name, initials: name.split(/\s+/).map(w => w[0]).join("").slice(0, 2).toUpperCase(),
+        phone: phone, time: time, test: ev.data.test_type || "—", kind: "booked", rowBg: "transparent",
+        duration: "—", hasRedaction: false,
+        summary: ev.data.summary || ("Booked " + ev.data.date + " at " + ev.data.time_slot + " via " + ev.channel + "."),
+        lines: [] };
+      this.setState(s => ({ liveStats: { answered: s.liveStats.answered, booked: s.liveStats.booked + 1 } }));
+    } else if (ev.type === "guardrail.redacted") {
+      row = { name: "Caller " + phone, initials: "GR", phone: phone, time: time, test: "—", kind: "guardrail",
+        rowBg: "#fef2f2", duration: "—", hasRedaction: true,
+        summary: ev.data.summary || "PHI intercepted and redacted by the compliance layer before storage.",
+        lines: [] };
+    }
+    if (row) this.setState(s => ({ liveCalls: [row].concat(s.liveCalls).slice(0, 20) }));
+  }
+
+  startDemoSim() {
+    if (this._simTimer || !(this.props.liveSimulation ?? true)) return;
+    {
+      const pool = [
+        { name: "Tom Ellison", initials: "TE", phone: "••• 8890", test: "PT / INR", kind: "booked", rowBg: "transparent", duration: "1m 21s", hasRedaction: false,
+          summary: "Weekly INR check; booked next open 15-minute slot and confirmed warfarin clinic fax-back.", lines: [] },
+        { name: "Priya Raman", initials: "PR", phone: "••• 1148", test: "Vitamin D, 25-OH", kind: "booked", rowBg: "transparent", duration: "0m 58s", hasRedaction: false,
+          summary: "Routine draw booked 4:00 PM; verified requisition against physician e-order.", lines: [] },
+        { name: "Hank Dolan", initials: "HD", phone: "••• 3362", test: "Basic Metabolic Panel", kind: "transfer", rowBg: "transparent", duration: "2m 02s", hasRedaction: false,
+          summary: "Billing dispute question — warm-transferred to office manager with account context.", lines: [] }
+      ];
+      let i = 0;
+      this._simTimer = setInterval(() => {
+        const now = new Date();
+        const c = Object.assign({}, pool[i % pool.length], { time: now.toLocaleTimeString("en-US", { hour: "numeric", minute: "2-digit" }) });
+        i++;
+        this.setState(s => ({ extraCalls: [c].concat(s.extraCalls).slice(0, 3) }));
+      }, 15000);
+    }
+  }
+
+  componentWillUnmount() {
+    clearInterval(this._clockTimer);
+    clearInterval(this._simTimer);
+    if (this._es) this._es.close();
+  }
+
+  renderVals() {
+    const B = Component.BADGES;
+    const decorate = c => Object.assign({}, c, B[c.kind], { open: () => this.setState({ selected: c }) });
+    const connected = this.state.connected;
+    const all = (connected
+      ? this.state.liveCalls
+      : this.state.extraCalls.concat(this.baseCalls())
+    ).map(decorate);
+    const sel = this.state.selected;
+
+    const mkDots = (booked, cap, blocked) => {
+      const dots = [];
+      for (let k = 0; k < cap; k++) {
+        if (blocked) dots.push({ bg: "repeating-linear-gradient(45deg,#e2e8f0 0 3px,#f8fafc 3px 6px)", border: "#e2e8f0", glow: "none" });
+        else if (k < booked) dots.push({ bg: "linear-gradient(180deg,#6366f1,#4f46e5)", border: "#4338ca", glow: "0 1px 3px rgba(79,70,229,.35)" });
+        else dots.push({ bg: "#ffffff", border: "#cbd5e1", glow: "inset 0 1px 2px rgba(15,23,42,.05)" });
+      }
+      return dots;
+    };
+    const FULL = { tag: "Full Capacity", tagBg: "#f1f5f9", tagFg: "#475569", tagBorder: "#e2e8f0" };
+    const AVAIL = { tag: "Available", tagBg: "#f0fdf4", tagFg: "#15803d", tagBorder: "#bbf7d0" };
+    const BLOCKED = { tag: "Blocked", tagBg: "#f8fafc", tagFg: "#94a3b8", tagBorder: "#e2e8f0" };
+    const slot = (time, booked, cap, blocked) => Object.assign(
+      { time: time, count: blocked ? "—" : booked + "/" + cap, dots: mkDots(booked, cap, blocked) },
+      blocked ? BLOCKED : (booked >= cap ? FULL : AVAIL)
+    );
+
+    return {
+      clock: this.state.clock,
+      lineStatus: connected ? "ENGINE LIVE" : "DEMO DATA",
+      callsAnswered: connected ? this.state.liveStats.answered : 128 + this.state.extraCalls.length,
+      apptsBooked: connected ? this.state.liveStats.booked : 47 + this.state.extraCalls.filter(c => c.kind === "booked").length,
+      feedCount: all.length,
+      calls: all,
+      mobileCalls: all.slice(0, 4),
+      showMobile: this.props.showMobileView ?? true,
+      slots: [
+        slot("9:00 AM", 4, 4), slot("9:30 AM", 3, 4), slot("10:00 AM", 4, 4),
+        slot("10:30 AM", 4, 4), slot("11:00 AM", 2, 4), slot("11:30 AM", 3, 4),
+        slot("12:00 PM", 0, 4, true), slot("12:30 PM", 0, 4, true),
+        slot("1:00 PM", 1, 4), slot("1:30 PM", 3, 4), slot("2:00 PM", 4, 4),
+        slot("2:30 PM", 2, 4), slot("3:00 PM", 1, 4), slot("3:30 PM", 2, 4)
+      ],
+      waveBars: (() => {
+        const bars = [];
+        for (let k = 0; k < 64; k++) {
+          const h = 5 + Math.abs(Math.sin(k * 1.7) * 14 + Math.sin(k * 0.43) * 9);
+          const redZone = sel && sel.hasRedaction && k >= 22 && k <= 32;
+          bars.push({ h: Math.round(h), c: redZone ? "#ef4444" : "#6366f1" });
+        }
+        return bars;
+      })(),
+      exportReport: () => {
+        const rows = [["time", "phone_tail", "requested_test", "status", "guardrail_event"]].concat(
+          all.map(c => [c.time, c.phone.replace(/•/g, "x"), c.test, c.status, c.hasRedaction ? "YES" : "no"])
+        );
+        const csv = rows.map(r => r.map(v => '"' + String(v).replace(/"/g, '""') + '"').join(",")).join("\n");
+        const fname = "meridian-daily-manifest-2026-07-04.csv";
+        const url = URL.createObjectURL(new Blob([csv], { type: "text/csv" }));
+        const a = document.createElement("a");
+        a.href = url; a.download = fname; a.click();
+        setTimeout(() => URL.revokeObjectURL(url), 5000);
+        clearTimeout(this._toastTimer);
+        this.setState({ toastVisible: true, toastFile: fname });
+        this._toastTimer = setTimeout(() => this.setState({ toastVisible: false }), 6000);
+      },
+      toastVisible: this.state.toastVisible,
+      toastFile: this.state.toastFile,
+      dismissToast: () => this.setState({ toastVisible: false }),
+      modalOpen: !!sel,
+      selName: sel ? sel.name : "",
+      selPhone: sel ? sel.phone : "",
+      selTime: sel ? sel.time : "",
+      selDuration: sel ? sel.duration : "",
+      selLines: sel ? (sel.lines.length ? sel.lines : [this.line(Component.AI, "00:04", "Transcript is still being sanitized by the guardrail pipeline. It will be available here within 60 seconds of call completion.")]) : [],
+      selHasRedaction: sel ? sel.hasRedaction : false,
+      closeModal: () => this.setState({ selected: null }),
+      stop: e => e.stopPropagation()
+    };
+  }
+}
+</script>
+</body>
+</html>
