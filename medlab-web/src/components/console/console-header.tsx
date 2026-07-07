@@ -59,8 +59,31 @@ const BADGE = {
   },
 } as const;
 
-export function ConsoleHeader() {
+function NavLinks({ className, linkClassName }: { className: string; linkClassName?: string }) {
   const pathname = usePathname();
+  return (
+    <nav className={className}>
+      {TABS.map((tab) => {
+        const active = pathname.startsWith(tab.href);
+        return (
+          <Link
+            key={tab.href}
+            href={tab.href}
+            className={`flex-none whitespace-nowrap rounded-md px-3 py-1.5 text-[13px] font-medium ${linkClassName ?? ""} ${
+              active
+                ? "bg-indigo-500/25 font-semibold text-indigo-200"
+                : "text-slate-400 hover:text-slate-200"
+            }`}
+          >
+            {tab.label}
+          </Link>
+        );
+      })}
+    </nav>
+  );
+}
+
+export function ConsoleHeader() {
   const { status, tenant } = useDashboard();
   const { user, signOut } = useAuth();
   const badge = BADGE[status];
@@ -74,62 +97,54 @@ export function ConsoleHeader() {
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900 text-slate-50 shadow">
-      <div className="mx-auto flex h-15 max-w-[1440px] items-center gap-4 px-6">
-        <div className="flex min-w-0 items-center gap-3">
-          <FlaskLogo />
-          <div className="leading-tight">
-            <div className="text-sm font-bold tracking-tight">
-              {tenant?.lab_name ?? "MedLab AI"}
+      <div className="mx-auto flex max-w-[1440px] flex-col gap-2 px-4 py-2.5 md:h-15 md:flex-row md:items-center md:gap-4 md:px-6 md:py-0">
+        <div className="flex items-center justify-between gap-3 md:contents">
+          <div className="flex min-w-0 items-center gap-3">
+            <FlaskLogo />
+            <div className="min-w-0 leading-tight">
+              <div className="truncate text-sm font-bold tracking-tight">
+                {tenant?.lab_name ?? "MedLab AI"}
+              </div>
+              <div className="font-mono text-[10.5px] text-slate-400">
+                AI RECEPTIONIST · CONSOLE
+              </div>
             </div>
-            <div className="font-mono text-[10.5px] text-slate-400">
-              AI RECEPTIONIST · CONSOLE
-            </div>
           </div>
-        </div>
 
-        <nav className="ml-5 flex gap-0.5">
-          {TABS.map((tab) => {
-            const active = pathname.startsWith(tab.href);
-            return (
-              <Link
-                key={tab.href}
-                href={tab.href}
-                className={
-                  active
-                    ? "rounded-md bg-indigo-500/25 px-3 py-1.5 text-[13px] font-semibold text-indigo-200"
-                    : "rounded-md px-3 py-1.5 text-[13px] font-medium text-slate-400 hover:text-slate-200"
-                }
-              >
-                {tab.label}
-              </Link>
-            );
-          })}
-        </nav>
+          <NavLinks className="hidden md:ml-5 md:flex md:gap-0.5" />
 
-        <div className="ml-auto flex items-center gap-3.5">
-          <div
-            className={`flex items-center gap-2 rounded-full border px-3 py-1.5 ${badge.box}`}
-          >
-            <span className={`size-1.5 rounded-full ${badge.dot}`} />
-            <span className={`font-mono text-[11px] font-semibold ${badge.text}`}>
-              {badge.label}
-            </span>
-          </div>
-          <div
-            className="grid size-8 place-items-center rounded-full bg-slate-700 text-xs font-bold text-slate-300"
-            title={user?.email ?? "local dev (no auth)"}
-          >
-            {initials}
-          </div>
-          {user ? (
-            <button
-              onClick={() => void signOut()}
-              className="text-xs font-semibold text-slate-400 hover:text-slate-200"
+          <div className="flex flex-none items-center gap-2.5 md:ml-auto md:gap-3.5">
+            <div
+              className={`flex items-center gap-2 rounded-full border px-2.5 py-1 md:px-3 md:py-1.5 ${badge.box}`}
             >
-              Sign out
-            </button>
-          ) : null}
+              <span className={`size-1.5 flex-none rounded-full ${badge.dot}`} />
+              <span
+                className={`hidden font-mono text-[11px] font-semibold sm:inline ${badge.text}`}
+              >
+                {badge.label}
+              </span>
+            </div>
+            <div
+              className="grid size-8 flex-none place-items-center rounded-full bg-slate-700 text-xs font-bold text-slate-300"
+              title={user?.email ?? "local dev (no auth)"}
+            >
+              {initials}
+            </div>
+            {user ? (
+              <button
+                onClick={() => void signOut()}
+                className="flex-none whitespace-nowrap text-xs font-semibold text-slate-400 hover:text-slate-200"
+              >
+                Sign out
+              </button>
+            ) : null}
+          </div>
         </div>
+
+        <NavLinks
+          className="-mx-4 flex gap-1 overflow-x-auto px-4 pb-0.5 md:hidden"
+          linkClassName="text-[12.5px]"
+        />
       </div>
     </header>
   );
