@@ -24,6 +24,11 @@ function createMemoryStore() {
       auditEvents.push({ id: auditEvents.length + 1, ...row });
     },
 
+    // Memory store starts empty every process — nothing to rehydrate.
+    async auditSeed() {
+      return null;
+    },
+
     async countBookings(tenantId, date, timeSlot) {
       return appointments.filter(
         a => a.tenant_id === tenantId && a.date === date &&
@@ -83,6 +88,28 @@ function createSupabaseStore() {
     async insertAuditEvent(row) {
       const { error } = await supabase.from('audit_events').insert([row]);
       if (error) throw new Error(`Supabase audit insert failed: ${error.message}`);
+    },
+
+    // Feed rehydration at boot: last 50 events for the ring buffer, plus
+    // { tenant_id, type } across all history for the counters. The tallies
+    // fetch is bounded rather than aggregated (PostgREST has no group-by);
+    // fine at receptionist volumes, revisit past ~10k events.
+    async auditSeed() {
+      const [recent, tallies] = await Promise.all([
+        supabase
+          .from('audit_events')
+          .select('id, tenant_id, event_id, type, channel, phone_tail, data, created_at')
+          .order('id', { ascending: false })
+          .limit(50),
+        supabase
+          .from('audit_events')
+          .select('tenant_id, type')
+          .order('id', { ascending: false })
+          .limit(10000),
+      ]);
+      const error = recent.error || tallies.error;
+      if (error) throw new Error(`Supabase audit seed failed: ${error.message}`);
+      return { recent: recent.data || [], tallies: tallies.data || [] };
     },
 
     async countBookings(tenantId, date, timeSlot) {

@@ -43,20 +43,24 @@ function createApp(overrides = {}) {
 
 if (require.main === module) {
   const { app, engine } = createApp();
-  const server = app.listen(config.port, () => {
-    const auth = config.gemini.useVertex
-      ? `vertex-adc (${config.gemini.project || 'NO PROJECT SET'} / ${config.gemini.location})`
-      : (config.gemini.apiKey ? 'api-key' : 'none — set GEMINI_API_KEY or GEMINI_USE_VERTEX');
-    safeLog(`🚀 MedLab Receptionist [${engine.tenant.labName}] on :${config.port}`);
-    safeLog(`   store=${engine.store.kind} model=${config.gemini.model} auth=${auth}`);
-  });
+  // Feed rehydration finishes before we take traffic, so live events can't
+  // interleave with the audit-trail replay.
+  engine.ready.then(() => {
+    const server = app.listen(config.port, () => {
+      const auth = config.gemini.useVertex
+        ? `vertex-adc (${config.gemini.project || 'NO PROJECT SET'} / ${config.gemini.location})`
+        : (config.gemini.apiKey ? 'api-key' : 'none — set GEMINI_API_KEY or GEMINI_USE_VERTEX');
+      safeLog(`🚀 MedLab Receptionist [${engine.tenant.labName}] on :${config.port}`);
+      safeLog(`   store=${engine.store.kind} model=${config.gemini.model} auth=${auth}`);
+    });
 
-  // Beta streaming voice path — only meaningful with a live Gemini key.
-  if (config.gemini.apiKey) {
-    const { attachLiveBridge } = require('./services/geminiLive');
-    attachLiveBridge(server, { engine });
-    safeLog('🎙️ Gemini Live bridge attached at /voice/stream (beta)');
-  }
+    // Beta streaming voice path — only meaningful with a live Gemini key.
+    if (config.gemini.apiKey) {
+      const { attachLiveBridge } = require('./services/geminiLive');
+      attachLiveBridge(server, { engine });
+      safeLog('🎙️ Gemini Live bridge attached at /voice/stream (beta)');
+    }
+  });
 }
 
 module.exports = { createApp };

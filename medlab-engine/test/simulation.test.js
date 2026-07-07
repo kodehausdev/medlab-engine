@@ -703,3 +703,45 @@ test('codec: mu-law encode/decode round trip stays within tolerance', () => {
     assert.ok(Math.abs(rt - s) <= tolerance, `sample ${s} → ${rt} exceeds tolerance`);
   }
 });
+
+// ══════════════════════════════════════════════════════════════
+// 10. FEED REHYDRATION — restart must not blank the dashboard
+// ══════════════════════════════════════════════════════════════
+test('dashboard: engine seeds counters + ring buffer from the audit trail at boot', async () => {
+  const store = createMemoryStore();
+  store.auditSeed = async () => ({
+    recent: [
+      { id: 7, tenant_id: 'test-lab', event_id: 'evt-7', type: 'call.answered',
+        channel: 'whatsapp', phone_tail: '3985', data: {}, created_at: '2026-07-07T11:48:35Z' },
+      { id: 8, tenant_id: 'test-lab', event_id: 'evt-8', type: 'booking.confirmed',
+        channel: 'whatsapp', phone_tail: '3985',
+        data: { patient_name: 'Pete Burg', test_type: 'PCR Scan' },
+        created_at: '2026-07-07T11:54:27Z' },
+      { id: 3, tenant_id: 'other-lab', event_id: 'evt-3', type: 'call.answered',
+        channel: 'voice', phone_tail: '0042', data: {}, created_at: '2026-07-05T14:22:00Z' },
+    ],
+    // Tallies span MORE history than the buffer — counters must use these.
+    tallies: [
+      { tenant_id: 'test-lab', type: 'call.answered' },
+      { tenant_id: 'test-lab', type: 'call.answered' },
+      { tenant_id: 'test-lab', type: 'booking.confirmed' },
+      { tenant_id: 'other-lab', type: 'call.answered' },
+    ],
+  });
+
+  const engine = createEngine({ store, tenant: TENANT, generateFn: scriptedModel([]), now: NOW });
+  await engine.ready;
+
+  const scoped = engine.events.snapshot('test-lab');
+  assert.equal(scoped.counters.calls_answered, 2, 'counters come from tallies, not the buffer');
+  assert.equal(scoped.counters.bookings_confirmed, 1);
+  assert.deepEqual(scoped.recent.map(e => e.id), ['evt-7', 'evt-8'], 'chronological, tenant-scoped');
+  assert.equal(scoped.recent[1].data.patient_name, 'Pete Burg');
+  assert.equal(engine.events.snapshot('other-lab').counters.calls_answered, 1);
+
+  // seq resumes past the highest db id — a live emit must not collide with
+  // seeded ids (the console dedupes by id).
+  const live = engine.events.emit('call.answered', { tenantId: 'test-lab', channel: 'voice' });
+  assert.equal(live.id, 'evt-9');
+  assert.equal(engine.events.snapshot('test-lab').counters.calls_answered, 3);
+});

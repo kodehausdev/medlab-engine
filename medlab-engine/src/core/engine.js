@@ -34,6 +34,19 @@ function createEngine(overrides = {}) {
     generateFn: overrides.generateFn,
   });
 
+  // Rehydrate the feed from the durable audit trail so a restart/redeploy
+  // doesn't blank the console. seed() bypasses subscribers, so nothing here
+  // re-persists or re-streams. index.js awaits `ready` before listening —
+  // no live event can interleave with the replay. Injected buses (tests)
+  // manage their own state.
+  const ready =
+    overrides.events || typeof store.auditSeed !== 'function'
+      ? Promise.resolve()
+      : store
+          .auditSeed()
+          .then((s) => { if (s) events.seed(s); })
+          .catch((err) => safeLog(`⚠️ audit seed failed: ${err.message}`));
+
   // Every dashboard event is also persisted as a durable audit row
   // (PHI-minimized at the source — see services/events.js). Fire-and-forget:
   // an audit-write failure must never break a caller's turn.
@@ -133,6 +146,7 @@ function createEngine(overrides = {}) {
     endSession,
     resolveTenant,
     getTenantById,
+    ready,
     store,
     tenant: defaultTenant,
     toolExecutor,
