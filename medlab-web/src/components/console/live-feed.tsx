@@ -78,22 +78,23 @@ export function LiveFeed({ limit }: { limit?: number }) {
         <span className="rounded-md bg-slate-100 px-2 py-0.5 font-mono text-[11px] text-slate-500">
           {events.length} events
         </span>
-        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border border-amber-200 bg-amber-50 px-2.5 py-1">
+        <span className="ml-auto inline-flex items-center gap-1.5 rounded-full border-2 border-red-300 bg-amber-100 px-2.5 py-1 shadow-[0_1px_2px_rgba(180,30,30,0.15)]">
           <svg
-            width="12"
-            height="12"
+            width="13"
+            height="13"
             viewBox="0 0 24 24"
             fill="none"
-            stroke="#b45309"
+            stroke="#b91c1c"
             strokeWidth="2.4"
             strokeLinecap="round"
+            strokeLinejoin="round"
             className="flex-none"
           >
-            <path d="M12 9v4M12 17h.01" />
-            <path d="M10.3 3.9L1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0z" />
+            <path d="M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z" />
           </svg>
-          <span className="text-[11px] font-medium text-amber-800">
-            Guardrail rows are metadata only — never caller content
+          <span className="text-[11px] font-medium text-red-900">
+            <span className="font-bold">PHI Protection:</span> Guardrail rows
+            contain metadata only. No caller content is stored or shown.
           </span>
         </span>
       </div>
