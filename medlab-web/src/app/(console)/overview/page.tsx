@@ -6,6 +6,30 @@ import { useDashboard } from "@/components/console/dashboard-provider";
 
 const AVG_MINUTES_SAVED_PER_CALL = 4.2;
 
+function Icon({ path }: { path: string }) {
+  return (
+    <svg
+      width="15"
+      height="15"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth="2.2"
+      strokeLinecap="round"
+      strokeLinejoin="round"
+    >
+      <path d={path} />
+    </svg>
+  );
+}
+
+const ICONS = {
+  phone: "M4 4h4l2 5-2.5 1.5a11 11 0 0 0 5 5L14 13l5 2v4a2 2 0 0 1-2 2A16 16 0 0 1 2 6a2 2 0 0 1 2-2z",
+  calendar: "M4 5h16v16H4zM4 9h16M8 3v4M16 3v4M8.5 13.5l2 2 4-4",
+  clock: "M12 21a9 9 0 1 0 0-18 9 9 0 0 0 0 18zM12 7v5l3.5 2",
+  shield: "M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z",
+};
+
 export default function OverviewPage() {
   const { status, tenant, counters } = useDashboard();
 
@@ -40,6 +64,8 @@ export default function OverviewPage() {
         <KpiCard
           label="Total Calls Answered"
           value={counters.calls_answered}
+          accent="indigo"
+          icon={<Icon path={ICONS.phone} />}
           sub={
             status === "offline" ? "—" : <>Every inbound conversation, voice + WhatsApp</>
           }
@@ -47,6 +73,8 @@ export default function OverviewPage() {
         <KpiCard
           label="Appointments Booked"
           value={counters.bookings_confirmed}
+          accent="violet"
+          icon={<Icon path={ICONS.calendar} />}
           sub="Confirmed by the AI against live capacity"
         />
         <KpiCard
@@ -59,29 +87,37 @@ export default function OverviewPage() {
               </span>
             </>
           }
+          accent="amber"
+          icon={<Icon path={ICONS.clock} />}
           sub={`≈ ${AVG_MINUTES_SAVED_PER_CALL} min staff time per call handled`}
         />
-        <div className="rounded-xl border border-green-200 bg-gradient-to-b from-green-50 to-white px-4.5 py-4 shadow-sm">
-          <div className="text-[11.5px] font-semibold uppercase tracking-wider text-green-700">
-            Compliance Status
+        <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-gradient-to-b from-emerald-50/80 to-white px-4.5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_20px_-14px_rgba(4,120,87,0.35)]">
+          <span className="absolute inset-x-0 top-0 h-[3px] bg-emerald-500" />
+          <div className="flex items-center justify-between">
+            <span className="text-[11.5px] font-semibold uppercase tracking-wider text-emerald-700">
+              Compliance Status
+            </span>
+            <span className="grid size-7 flex-none place-items-center rounded-lg bg-emerald-100 text-emerald-600">
+              <Icon path={ICONS.shield} />
+            </span>
           </div>
-          <div className="mt-2.5 text-xl font-bold tracking-tight text-green-950">
+          <div className="mt-2.5 text-[26px] font-bold leading-none tracking-tight text-emerald-950">
             {counters.guardrail_events === 0
               ? "100% PHI-Sanitized"
               : `${counters.guardrail_events} guardrail intercept${
                   counters.guardrail_events === 1 ? "" : "s"
                 }`}
           </div>
-          <div className="mt-2 inline-flex items-center gap-1.5 rounded-full border border-green-300 bg-green-100 px-2.5 py-1">
-            <span className="size-1.5 rounded-full bg-green-600" />
-            <span className="font-mono text-[11px] font-semibold text-green-800">
+          <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1">
+            <span className="size-1.5 rounded-full bg-emerald-600" />
+            <span className="font-mono text-[11px] font-semibold text-emerald-800">
               HIPAA GUARDRAILS ACTIVE
             </span>
           </div>
         </div>
       </div>
 
-      <LiveFeed />
+      <LiveFeed limit={6} />
     </div>
   );
 }
