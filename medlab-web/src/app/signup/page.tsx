@@ -2,7 +2,8 @@
 
 import { Suspense, useState, type FormEvent } from "react";
 import Link from "next/link";
-import { useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
+import { supabase } from "@/lib/supabase";
 
 const TIMEZONES = [
   "America/New_York",
@@ -11,7 +12,7 @@ const TIMEZONES = [
   "America/Los_Angeles",
 ];
 
-const STEPS = ["Lab profile", "Owner account", "Review & payment"];
+const STEPS = ["Lab profile", "Owner account", "Review & create account"];
 
 function FlaskLogo() {
   return (
@@ -29,10 +30,10 @@ const inputCls =
   "rounded-lg border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white";
 
 function SignupWizard() {
-  const canceled = useSearchParams().get("canceled") === "1";
+  const router = useRouter();
   const [step, setStep] = useState(0);
   const [busy, setBusy] = useState(false);
-  const [error, setError] = useState<string | null>(canceled ? "Payment was canceled — pick up where you left off." : null);
+  const [error, setError] = useState<string | null>(null);
 
   const [labName, setLabName] = useState("");
   const [timezone, setTimezone] = useState(TIMEZONES[0]);
@@ -53,7 +54,7 @@ function SignupWizard() {
     setStep((s) => s + 1);
   }
 
-  async function startCheckout() {
+  async function finishSignup() {
     setBusy(true);
     setError(null);
     try {
@@ -68,7 +69,8 @@ function SignupWizard() {
         setBusy(false);
         return;
       }
-      window.location.href = data.url; // Stripe-hosted checkout
+      if (supabase) await supabase.auth.signInWithPassword({ email, password });
+      router.push("/overview");
     } catch {
       setError("Network error — try again.");
       setBusy(false);
@@ -186,7 +188,7 @@ function SignupWizard() {
 
           {step === 2 && (
             <div className="flex flex-col gap-4">
-              <h1 className="text-lg font-bold tracking-tight">Review &amp; payment</h1>
+              <h1 className="text-lg font-bold tracking-tight">Review &amp; create account</h1>
               <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
                 <div className="flex justify-between py-1"><span className="text-slate-500">Lab</span><span className="font-semibold">{labName}</span></div>
                 <div className="flex justify-between py-1"><span className="text-slate-500">Hours</span><span className="font-semibold">{openHour}:00 – {closeHour}:00 · {timezone.split("/")[1]?.replace("_", " ")}</span></div>
@@ -197,14 +199,14 @@ function SignupWizard() {
                   <span className="font-bold">$297<span className="text-xs font-medium text-slate-500">/mo per location</span></span>
                 </div>
               </div>
-              <button onClick={startCheckout} disabled={busy} className="rounded-lg bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
-                {busy ? "Preparing secure checkout…" : "Continue to secure payment →"}
+              <button onClick={finishSignup} disabled={busy} className="rounded-lg bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+                {busy ? "Creating your console…" : "Create my console →"}
               </button>
               <button onClick={() => setStep(1)} className="text-xs font-semibold text-slate-500 hover:text-slate-700">
                 ← Back
               </button>
               <p className="text-center font-mono text-[10px] text-slate-400">
-                PAYMENT BY STRIPE · CANCEL ANYTIME · NO PATIENT DATA REQUIRED TO START
+                NO CHARGE TODAY · SECURE YOUR CARD NEXT · NO PATIENT DATA REQUIRED TO START
               </p>
             </div>
           )}

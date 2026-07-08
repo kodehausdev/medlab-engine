@@ -1,8 +1,9 @@
 // POST /api/stripe/webhook
-// Subscription lifecycle sync. The success page handles first activation;
-// this keeps tenants honest afterwards (past_due, canceled, reactivated).
-// Requires STRIPE_WEBHOOK_SECRET (from `stripe listen` locally, or the
-// dashboard endpoint config in production). Without it: 501, by design.
+// Subscription lifecycle sync. scripts/activate-tenant.mjs creates the
+// subscription at go-live; this keeps tenants honest afterwards (past_due,
+// canceled, reactivated). Requires STRIPE_WEBHOOK_SECRET (from
+// `stripe listen` locally, or the dashboard endpoint config in production).
+// Without it: 501, by design.
 
 import { NextResponse } from "next/server";
 import type Stripe from "stripe";
@@ -39,18 +40,6 @@ export async function POST(req: Request) {
   }
 
   switch (event.type) {
-    case "checkout.session.completed": {
-      const session = event.data.object;
-      const tenantId = session.metadata?.tenant_id;
-      if (tenantId && session.payment_status === "paid") {
-        const subscriptionId =
-          typeof session.subscription === "string"
-            ? session.subscription
-            : session.subscription?.id;
-        await setStatus(tenantId, "active", subscriptionId);
-      }
-      break;
-    }
     case "customer.subscription.updated":
     case "customer.subscription.deleted": {
       const sub = event.data.object;

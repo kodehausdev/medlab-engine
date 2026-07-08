@@ -1,12 +1,15 @@
 // POST /api/onboarding/start
-// Wizard steps 1–2 land here: provisions tenant (status 'incomplete') +
-// owner account, then returns a Stripe Checkout URL for the $297/mo
-// subscription. Activation happens in /api/onboarding/confirm (success page)
-// and /api/stripe/webhook.
+// Wizard steps 1–2 land here: provisions tenant (onboarding_state
+// 'payment_pending') + owner account, and a Stripe customer to attach a
+// card to later. No charge and no subscription yet — the tenant secures a
+// card ($0 SetupIntent, /api/onboarding/setup-intent + confirm-card) after
+// signing in, then self-serves a WhatsApp number, then ops activates the
+// real $297/mo subscription once provisioning is done
+// (scripts/activate-tenant.mjs).
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/server/supabase-admin";
-import { stripeClient, proPriceId } from "@/lib/server/stripe";
+import { stripeClient } from "@/lib/server/stripe";
 
 interface StartBody {
   labName?: string;
@@ -72,6 +75,7 @@ export async function POST(req: Request) {
     slot_capacity: slotCapacity,
     plan: "standard",
     subscription_status: "incomplete",
+    onboarding_state: "payment_pending",
   });
   if (tenantError)
     return NextResponse.json(
@@ -116,8 +120,8 @@ export async function POST(req: Request) {
     );
   }
 
-  // 3. Stripe customer + hosted Checkout for the subscription.
-  const origin = req.headers.get("origin") ?? "http://localhost:3001";
+  // 3. Stripe customer — the card itself is collected later via
+  // /api/onboarding/setup-intent once the owner is signed in.
   try {
     const customer = await stripe.customers.create({
       email,
@@ -129,17 +133,7 @@ export async function POST(req: Request) {
       .update({ stripe_customer_id: customer.id })
       .eq("id", tenantId);
 
-    const session = await stripe.checkout.sessions.create({
-      mode: "subscription",
-      customer: customer.id,
-      line_items: [{ price: proPriceId(), quantity: 1 }],
-      metadata: { tenant_id: tenantId },
-      subscription_data: { metadata: { tenant_id: tenantId } },
-      success_url: `${origin}/signup/success?session_id={CHECKOUT_SESSION_ID}`,
-      cancel_url: `${origin}/signup?canceled=1`,
-    });
-
-    return NextResponse.json({ url: session.url, tenantId });
+    return NextResponse.json({ tenantId });
   } catch (err) {
     await admin.auth.admin.deleteUser(created.user.id);
     await rollback();

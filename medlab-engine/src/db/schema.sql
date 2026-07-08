@@ -15,6 +15,11 @@ create table if not exists tenants (
   stripe_customer_id text,
   stripe_subscription_id text,
   subscription_status text default 'incomplete',  -- incomplete | active | past_due | canceled
+  stripe_payment_method_id text,          -- default PM saved at the $0 setup step
+  onboarding_state text not null default 'live_active',
+    -- payment_pending | provisioning_pending_number | provisioning_active | live_active
+    -- self-serve signup starts at payment_pending; hand-provisioned/legacy
+    -- tenants default straight to live_active (see migrations/0004)
   created_at timestamptz default now()
 );
 

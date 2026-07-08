@@ -3,6 +3,9 @@
 import { KpiCard } from "@/components/console/kpi-card";
 import { LiveFeed } from "@/components/console/live-feed";
 import { useDashboard } from "@/components/console/dashboard-provider";
+import { useAuth } from "@/components/auth/auth-gate";
+import { NumberIntake } from "@/components/console/number-intake";
+import { ProvisioningTracker } from "@/components/console/provisioning-tracker";
 
 const AVG_MINUTES_SAVED_PER_CALL = 4.2;
 
@@ -30,8 +33,18 @@ const ICONS = {
   shield: "M12 3l7 3v6c0 4.5-3 7.7-7 9-4-1.3-7-4.5-7-9V6z",
 };
 
+const CONFIGURING_BADGE = (
+  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 font-mono text-[10.5px] font-semibold text-amber-700">
+    Configuring Engine
+  </span>
+);
+
 export default function OverviewPage() {
   const { status, tenant, counters } = useDashboard();
+  const { tenant: authTenant } = useAuth();
+  const onboardingState = authTenant?.onboarding_state;
+  const awaitingNumber = onboardingState === "provisioning_pending_number";
+  const provisioningActive = onboardingState === "provisioning_active";
 
   const hoursSaved = (counters.calls_answered * AVG_MINUTES_SAVED_PER_CALL) / 60;
   const today = new Date().toLocaleDateString("en-US", {
@@ -63,33 +76,45 @@ export default function OverviewPage() {
       <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3.5">
         <KpiCard
           label="Total Calls Answered"
-          value={counters.calls_answered}
+          value={provisioningActive ? "—" : counters.calls_answered}
           accent="indigo"
           icon={<Icon path={ICONS.phone} />}
           sub={
-            status === "offline" ? "—" : <>Every inbound conversation, voice + WhatsApp</>
+            provisioningActive
+              ? CONFIGURING_BADGE
+              : status === "offline"
+                ? "—"
+                : <>Every inbound conversation, voice + WhatsApp</>
           }
         />
         <KpiCard
           label="Appointments Booked"
-          value={counters.bookings_confirmed}
+          value={provisioningActive ? "—" : counters.bookings_confirmed}
           accent="violet"
           icon={<Icon path={ICONS.calendar} />}
-          sub="Confirmed by the AI against live capacity"
+          sub={provisioningActive ? CONFIGURING_BADGE : "Confirmed by the AI against live capacity"}
         />
         <KpiCard
           label="Front-Desk Hours Saved"
           value={
-            <>
-              {hoursSaved.toFixed(1)}{" "}
-              <span className="text-base font-semibold text-slate-500">
-                hrs
-              </span>
-            </>
+            provisioningActive ? (
+              "—"
+            ) : (
+              <>
+                {hoursSaved.toFixed(1)}{" "}
+                <span className="text-base font-semibold text-slate-500">
+                  hrs
+                </span>
+              </>
+            )
           }
           accent="amber"
           icon={<Icon path={ICONS.clock} />}
-          sub={`≈ ${AVG_MINUTES_SAVED_PER_CALL} min staff time per call handled`}
+          sub={
+            provisioningActive
+              ? CONFIGURING_BADGE
+              : `≈ ${AVG_MINUTES_SAVED_PER_CALL} min staff time per call handled`
+          }
         />
         <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-gradient-to-b from-emerald-50/80 to-white px-4.5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_20px_-14px_rgba(4,120,87,0.35)]">
           <span className="absolute inset-x-0 top-0 h-[3px] bg-emerald-500" />
@@ -117,7 +142,13 @@ export default function OverviewPage() {
         </div>
       </div>
 
-      <LiveFeed limit={6} />
+      {awaitingNumber ? (
+        <NumberIntake />
+      ) : provisioningActive ? (
+        <ProvisioningTracker />
+      ) : (
+        <LiveFeed limit={6} />
+      )}
     </div>
   );
 }

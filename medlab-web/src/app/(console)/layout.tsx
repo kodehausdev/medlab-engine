@@ -1,14 +1,24 @@
+"use client";
+
 import type { ReactNode } from "react";
-import { AuthGate } from "@/components/auth/auth-gate";
+import { AuthGate, useAuth } from "@/components/auth/auth-gate";
 import { DashboardProvider } from "@/components/console/dashboard-provider";
 import { ConsoleHeader } from "@/components/console/console-header";
+import { PaymentGate } from "@/components/console/payment-gate";
 
 export default function ConsoleLayout({ children }: { children: ReactNode }) {
   return (
     <AuthGate>
-      <ConsoleShell>{children}</ConsoleShell>
+      <OnboardingGate>{children}</OnboardingGate>
     </AuthGate>
   );
+}
+
+function OnboardingGate({ children }: { children: ReactNode }) {
+  const { tenant } = useAuth();
+  // Nothing to show until a card is on file — no nav, no dashboard.
+  if (tenant?.onboarding_state === "payment_pending") return <PaymentGate />;
+  return <ConsoleShell>{children}</ConsoleShell>;
 }
 
 function ConsoleShell({ children }: { children: ReactNode }) {

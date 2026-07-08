@@ -42,6 +42,11 @@ export interface EngineState {
     open_hour: number;
     close_hour: number;
     slot_capacity: number;
+    // Only populated for authed tenants (see auth-gate.tsx) — the engine's
+    // own /api/dashboard/state doesn't return these.
+    onboarding_state?: string;
+    whatsapp_number?: string | null;
+    subscription_status?: string;
   };
   counters: Counters;
   recent: DashboardEvent[];

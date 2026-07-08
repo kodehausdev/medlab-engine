@@ -21,16 +21,22 @@ import type { EngineState } from "@/lib/engine";
 
 export type AuthTenant = EngineState["tenant"];
 
+const TENANT_COLUMNS =
+  "id, lab_name, open_hour, close_hour, slot_capacity, onboarding_state, whatsapp_number, subscription_status";
+
 interface AuthContextValue {
   user: User | null;
   /** The signed-in user's lab, fetched under RLS — null in keyless dev mode. */
   tenant: AuthTenant | null;
+  /** Re-fetches the tenant row — call after an onboarding-state change. */
+  refreshTenant: () => Promise<void>;
   signOut: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   tenant: null,
+  refreshTenant: async () => {},
   signOut: async () => {},
 });
 
@@ -56,10 +62,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
         setTenant(null);
         return;
       }
-      const { data } = await sb
-        .from("tenants")
-        .select("id, lab_name, open_hour, close_hour, slot_capacity")
-        .single();
+      const { data } = await sb.from("tenants").select(TENANT_COLUMNS).single();
       setTenant((data as AuthTenant) ?? null);
     };
 
@@ -84,6 +87,13 @@ export function AuthGate({ children }: { children: ReactNode }) {
     if (status === "out") router.replace("/login");
   }, [status, router]);
 
+  const refreshTenant = async () => {
+    const sb = supabase;
+    if (!sb) return;
+    const { data } = await sb.from("tenants").select(TENANT_COLUMNS).single();
+    setTenant((data as AuthTenant) ?? null);
+  };
+
   const signOut = async () => {
     await supabase?.auth.signOut();
   };
@@ -100,7 +110,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, tenant, signOut }}>
+    <AuthContext.Provider value={{ user, tenant, refreshTenant, signOut }}>
       {children}
     </AuthContext.Provider>
   );
