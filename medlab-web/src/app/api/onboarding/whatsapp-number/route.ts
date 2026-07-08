@@ -1,8 +1,14 @@
-// POST /api/onboarding/whatsapp-number  { whatsapp_number }
+// POST /api/onboarding/whatsapp-number  { whatsapp_number, confirmed_unregistered }
 // Self-serve number intake, rendered by <NumberIntake> while the tenant is
 // 'provisioning_pending_number'. Advances to 'provisioning_active' — ops
 // then configures Twilio + the engine for this tenant out of band, and
 // runs scripts/activate-tenant.mjs once it's live.
+//
+// confirmed_unregistered is a self-attestation, not a verified check — there's
+// no API we call here to confirm it. WhatsApp Business registration itself
+// will reject a number that already has (or had) a personal/Business app
+// account, so this just front-loads that failure mode before ops spends time
+// on it, rather than catching it for real.
 
 import { NextResponse } from "next/server";
 import { supabaseAdmin } from "@/lib/server/supabase-admin";
@@ -23,8 +29,11 @@ export async function POST(req: Request) {
     );
 
   let whatsappNumber: string | undefined;
+  let confirmedUnregistered: boolean | undefined;
   try {
-    whatsappNumber = (await req.json())?.whatsapp_number;
+    const body = await req.json();
+    whatsappNumber = body?.whatsapp_number;
+    confirmedUnregistered = body?.confirmed_unregistered;
   } catch {
     /* fall through */
   }
@@ -32,6 +41,11 @@ export async function POST(req: Request) {
   if (!whatsappNumber || !E164_RE.test(whatsappNumber))
     return NextResponse.json(
       { error: "Enter the number in international format, e.g. +14155551234." },
+      { status: 400 }
+    );
+  if (confirmedUnregistered !== true)
+    return NextResponse.json(
+      { error: "Confirm the number has no existing WhatsApp registration before submitting." },
       { status: 400 }
     );
 

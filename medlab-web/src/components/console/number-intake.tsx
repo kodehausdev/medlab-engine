@@ -11,6 +11,7 @@ import { authHeaders } from "@/lib/auth-headers";
 export function NumberIntake() {
   const { refreshTenant } = useAuth();
   const [number, setNumber] = useState("");
+  const [confirmedUnregistered, setConfirmedUnregistered] = useState(false);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -22,7 +23,10 @@ export function NumberIntake() {
       const res = await fetch("/api/onboarding/whatsapp-number", {
         method: "POST",
         headers: await authHeaders(),
-        body: JSON.stringify({ whatsapp_number: number.trim() }),
+        body: JSON.stringify({
+          whatsapp_number: number.trim(),
+          confirmed_unregistered: confirmedUnregistered,
+        }),
       });
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not save number.");
@@ -41,6 +45,12 @@ export function NumberIntake() {
           Your card is on file — no charge yet. Give us the WhatsApp Business number your
           patients text, and we&apos;ll start configuring your engine instance.
         </p>
+        <div className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-left text-xs text-amber-800">
+          <span className="font-bold">Must be a number with no WhatsApp history.</span> WhatsApp
+          Business API registration fails on any number that already has (or ever had) a personal
+          or Business app account. If this SIM has WhatsApp installed, delete that account first —
+          otherwise use a fresh number.
+        </div>
         <form onSubmit={onSubmit} className="mt-2 flex flex-col gap-3 text-left">
           <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
             WhatsApp Business number
@@ -51,6 +61,17 @@ export function NumberIntake() {
               placeholder="+14155551234"
               className="rounded-lg border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white"
             />
+          </label>
+          <label className="flex items-start gap-2 text-xs text-slate-600">
+            <input
+              required
+              type="checkbox"
+              checked={confirmedUnregistered}
+              onChange={(e) => setConfirmedUnregistered(e.target.checked)}
+              className="mt-0.5"
+            />
+            I confirm this number has never been registered to WhatsApp (or its existing account
+            has been deleted).
           </label>
           {error ? (
             <div className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">

@@ -62,7 +62,14 @@ function CardForm() {
   return (
     <form onSubmit={onSubmit} className="flex flex-col gap-4">
       <PaymentElement
-        options={{ defaultValues: { billingDetails: { address: { country: "US" } } } }}
+        options={{
+          defaultValues: { billingDetails: { address: { country: "US" } } },
+          // Suppress Link's own "save my info" enrollment card — we collect
+          // the contact details we need (email at signup, WhatsApp number in
+          // the next onboarding step) ourselves; Stripe Link would otherwise
+          // save them into Stripe's separate cross-merchant network instead.
+          wallets: { link: "never" },
+        }}
       />
       {error ? (
         <div className="rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
