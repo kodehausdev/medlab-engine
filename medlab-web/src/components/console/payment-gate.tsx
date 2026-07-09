@@ -21,6 +21,32 @@ import { authHeaders } from "@/lib/auth-headers";
 const publishableKey = process.env.NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY;
 const stripePromise = publishableKey ? loadStripe(publishableKey) : null;
 
+// Themes the embedded PaymentElement (renders in a cross-origin iframe, so
+// it can't see our Tailwind theme tokens — see globals.css) to match the
+// terracotta/cream onboarding palette. Figtree is loaded via cssSrc since
+// Stripe's iframe can't reach our next/font-hosted files.
+const STRIPE_APPEARANCE = {
+  theme: "flat" as const,
+  variables: {
+    colorPrimary: "#c96f4a",
+    colorBackground: "#fffdfb",
+    colorText: "#2b2420",
+    colorTextSecondary: "#8a7869",
+    colorTextPlaceholder: "#a8917d",
+    colorDanger: "#b91c1c",
+    fontFamily: "Figtree, system-ui, sans-serif",
+    borderRadius: "999px",
+  },
+  rules: {
+    ".Input": { border: "1.5px solid #ece0d2", boxShadow: "none", padding: "13px 18px" },
+    ".Input:focus": { border: "1.5px solid #c96f4a", boxShadow: "none" },
+    ".Label": { fontWeight: "600", fontSize: "12.5px", color: "#5c4f42" },
+  },
+};
+const STRIPE_FONTS = [
+  { cssSrc: "https://fonts.googleapis.com/css2?family=Figtree:wght@400;500;600;700&display=swap" },
+];
+
 async function confirmCard(setupIntentId: string) {
   const res = await fetch("/api/onboarding/confirm-card", {
     method: "POST",
@@ -79,7 +105,7 @@ function CardForm() {
       <button
         type="submit"
         disabled={busy || !stripe}
-        className="rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60"
+        className="rounded-full bg-terracotta py-[15px] font-onboarding text-sm font-semibold text-white shadow-[0_6px_18px_rgba(201,111,74,0.35)] hover:bg-terracotta-dark disabled:opacity-60"
       >
         {busy ? "Securing your card…" : "Secure my AI engine instance →"}
       </button>
@@ -133,20 +159,20 @@ function PaymentGateInner() {
   }, [resolvingRedirect]);
 
   return (
-    <div className="grid min-h-screen place-items-center bg-slate-100 p-5">
-      <div className="w-full max-w-md rounded-2xl border border-slate-200 bg-white p-7 shadow-sm">
-        <h1 className="text-lg font-bold tracking-tight">Secure your AI engine instance</h1>
-        <p className="mt-2 text-sm text-slate-500">
+    <div className="grid min-h-screen place-items-center bg-cream-page p-5 font-onboarding">
+      <div className="w-full max-w-md rounded-2xl border border-cream-border bg-cream p-7 shadow-[0_8px_30px_rgba(120,80,50,0.12)]">
+        <h1 className="font-display text-[22px] font-medium text-ink">Secure your AI engine instance</h1>
+        <p className="mt-2 text-[13.5px] text-cream-muted">
           We&apos;re about to dedicate a private AI engine instance and WhatsApp routing to your
           lab.
         </p>
 
-        <div className="mt-4 rounded-xl border border-slate-200 bg-slate-50 p-4">
+        <div className="mt-4 rounded-xl border border-cream-border bg-cream-input p-4">
           <div className="flex items-baseline justify-between">
-            <span className="text-sm font-medium text-slate-500">Today&apos;s total</span>
-            <span className="text-2xl font-bold tracking-tight">$0.00</span>
+            <span className="text-sm font-medium text-cream-muted">Today&apos;s total</span>
+            <span className="text-2xl font-bold tracking-tight text-ink">$0.00</span>
           </div>
-          <p className="mt-1.5 text-xs text-slate-500">
+          <p className="mt-1.5 text-xs text-cream-muted">
             We require a card to dedicate an AI engine instance and routing. Subscription begins
             only when your line goes live — $297/mo, cancel anytime.
           </p>
@@ -160,8 +186,8 @@ function PaymentGateInner() {
 
         <div className="mt-5">
           {resolvingRedirect ? (
-            <div className="flex items-center gap-2.5 text-sm text-slate-500">
-              <span className="size-2 rounded-full bg-indigo-600 [animation:pulse-dot_1.2s_ease-in-out_infinite]" />
+            <div className="flex items-center gap-2.5 text-sm text-cream-muted">
+              <span className="size-2 rounded-full bg-terracotta [animation:pulse-dot_1.2s_ease-in-out_infinite]" />
               Confirming your card…
             </div>
           ) : !stripePromise ? (
@@ -169,19 +195,22 @@ function PaymentGateInner() {
               Stripe isn&apos;t configured (NEXT_PUBLIC_STRIPE_PUBLISHABLE_KEY missing).
             </div>
           ) : clientSecret ? (
-            <Elements stripe={stripePromise} options={{ clientSecret, locale: "en" }}>
+            <Elements
+              stripe={stripePromise}
+              options={{ clientSecret, locale: "en", appearance: STRIPE_APPEARANCE, fonts: STRIPE_FONTS }}
+            >
               <CardForm />
             </Elements>
           ) : (
-            <div className="flex items-center gap-2.5 text-sm text-slate-500">
-              <span className="size-2 rounded-full bg-indigo-600 [animation:pulse-dot_1.2s_ease-in-out_infinite]" />
+            <div className="flex items-center gap-2.5 text-sm text-cream-muted">
+              <span className="size-2 rounded-full bg-terracotta [animation:pulse-dot_1.2s_ease-in-out_infinite]" />
               Preparing secure checkout…
             </div>
           )}
         </div>
 
-        <p className="mt-4 text-center font-mono text-[10px] text-slate-400">
-          PAYMENT BY STRIPE · NO CHARGE TODAY · CANCEL ANYTIME
+        <p className="mt-4 text-center text-[10.5px] font-medium tracking-[0.04em] text-cream-faint uppercase">
+          Payment by Stripe · No charge today · Cancel anytime
         </p>
       </div>
     </div>
