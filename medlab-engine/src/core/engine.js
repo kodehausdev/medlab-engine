@@ -14,6 +14,7 @@ const { createToolHandlers } = require('../services/tools/handlers');
 const { createEventBus } = require('../services/events');
 const { createStore } = require('../db/client');
 const { safeLog } = require('../compliance/hipaa');
+const { containsEmergency, emergencyScript } = require('../compliance/emergency');
 const config = require('../config');
 
 const TENANT_CACHE_TTL_MS = 60 * 1000;
@@ -123,7 +124,8 @@ function createEngine(overrides = {}) {
     };
 
     // First turn of a fresh session = a new answered call/conversation.
-    if (session.history.length === 0) {
+    const firstTurn = session.history.length === 0;
+    if (firstTurn) {
       events.emit('call.answered', {
         channel,
         phone: ctx.callerPhone,
@@ -131,10 +133,42 @@ function createEngine(overrides = {}) {
       });
     }
 
+    // Hard emergency gate — model-independent, checked before Gemini sees
+    // the turn. Scripted 911 redirect; the caller's text never enters
+    // session history and no tools run. Fail-safe by design: a receptionist
+    // must never triage.
+    const emergencyHit = containsEmergency(text);
+    if (emergencyHit) {
+      safeLog(`🚨 emergency term detected (${channel}) — redirected to 911`);
+      events.emit('emergency.detected', {
+        channel,
+        phone: ctx.callerPhone,
+        tenantId: tenant.id,
+      }, {
+        status: 'emergency_redirected',
+        summary:
+          'Caller language suggested a possible medical emergency. ' +
+          'Scripted 911/ER redirect delivered; no booking action taken.',
+      });
+      return {
+        reply: emergencyScript(channel),
+        bookedNow: false,
+        emergency: true,
+        session,
+        tenant,
+      };
+    }
+
     const { reply, bookedNow } = await gemini.runTurn(session, text, ctx);
     if (bookedNow) session.completed = true;
 
-    return { reply, bookedNow, session, tenant };
+    // Proactive AI disclosure on the first text reply of a conversation —
+    // deterministic, not left to the model. (Voice discloses in its greeting.)
+    const disclosed = firstTurn && channel === 'whatsapp'
+      ? `You're chatting with ${tenant.labName}'s automated AI assistant.\n\n${reply}`
+      : reply;
+
+    return { reply: disclosed, bookedNow, session, tenant };
   }
 
   function endSession(channel, from, tenantId) {

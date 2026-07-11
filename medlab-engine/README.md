@@ -77,6 +77,32 @@ medlab-engine/
 5. The system prompt forbids collecting anything beyond the four fields and
    scripts the deflection when callers volunteer health details.
 
+## US-market guardrails
+
+Model-independent gates layered on top of the HIPAA controls:
+
+1. **Emergency detection** (`compliance/emergency.js`) — distress language
+   ("chest pain", "can't breathe", suicide/overdose terms, …) is checked on
+   the raw caller text *before* the turn reaches Gemini. On match: scripted
+   911/ER redirect, `emergency.detected` audit event, no tools run, the
+   caller's words never enter session history; voice hangs up after the
+   script. Deliberately over-triggers — a receptionist must never triage.
+2. **TCPA/CTIA opt-out** (`routes/whatsapp.js` + `optouts` table) — exact
+   whole-message STOP-family keywords are honored deterministically, never
+   routed through the model. Opted-out numbers get no AI processing and no
+   outbound sends beyond a scripted "reply START to opt back in" note.
+   START/UNSTOP/YES reverses it. Note: bare "cancel" opts out per CTIA;
+   "cancel my appointment" flows to the engine normally.
+3. **AI disclosure** (CA B.O.T. law / Utah AI Policy Act posture) — the
+   voice greeting and the first WhatsApp reply of every conversation
+   disclose the AI deterministically; the system prompt additionally forbids
+   ever claiming to be human.
+4. **Caller-scoped cancel/reschedule** — `find_my_appointments` +
+   `cancel_appointment` tools match strictly by caller ID; a booking_id
+   that isn't among the caller's own upcoming appointments is refused, so
+   ids can't be guessed to cancel someone else's booking. Reschedule =
+   cancel + rebook. Emits `booking.cancelled`.
+
 > Note: technical controls ≠ compliance. Production still needs a Twilio
 > BAA (available on their HIPAA-eligible products), hosting under a BAA,
 > access controls, and a signed BAA with each lab customer. For the model

@@ -45,6 +45,18 @@ create table if not exists appointments (
 create index if not exists idx_appointments_slot
   on appointments (tenant_id, date, time_slot) where status = 'confirmed';
 
+-- TCPA/CTIA opt-out registry: STOP keywords honored deterministically
+-- (never routed through the model), recorded per (tenant, phone). The
+-- engine suppresses all outbound sends to opted-out numbers.
+-- (Existing databases: apply migrations/0005_optouts.sql instead.)
+create table if not exists optouts (
+  tenant_id text not null references tenants(id),
+  phone_number text not null,             -- normalized, no 'whatsapp:' prefix
+  opted_out boolean not null default true,
+  updated_at timestamptz default now(),
+  primary key (tenant_id, phone_number)
+);
+
 -- Audit log: the durable copy of the dashboard event stream
 -- (services/events.js envelope). PHI-minimized at the source — phone numbers
 -- reduced to a 4-digit tail, guardrail events carry no caller content.
@@ -92,6 +104,9 @@ alter table tenants enable row level security;
 alter table appointments enable row level security;
 alter table audit_events enable row level security;
 alter table profiles enable row level security;
+-- optouts: engine-only (service role). RLS on with no policies = invisible
+-- to console users and the anon key.
+alter table optouts enable row level security;
 
 create policy "read own profile" on profiles
   for select to authenticated using (user_id = (select auth.uid()));

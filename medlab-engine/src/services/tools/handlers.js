@@ -139,6 +139,66 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
         lab_name: tenant.labName,
       };
     },
+
+    async find_my_appointments(_args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
+      const phone = (ctx.callerPhone || '').replace(/^whatsapp:/, '').trim();
+      if (!phone) return { appointments: [], note: 'No caller ID available for this conversation.' };
+
+      const today = (ctx.now || new Date()).toISOString().split('T')[0];
+      const rows = await store.findUpcomingAppointments(tenant.id, phone, today);
+      return {
+        appointments: rows.map(a => ({
+          booking_id: a.id,
+          test_type: a.test_type,
+          date: a.date,
+          time_slot: a.time_slot,
+        })),
+        note: rows.length
+          ? undefined
+          : 'No upcoming appointments found for this phone number.',
+      };
+    },
+
+    async cancel_appointment(args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
+      const phone = (ctx.callerPhone || '').replace(/^whatsapp:/, '').trim();
+      const bookingId = Number(args.booking_id);
+      if (!Number.isInteger(bookingId)) {
+        return { error: 'booking_id must be a number from find_my_appointments.' };
+      }
+
+      // Ownership check: the id must be among the CALLER's own upcoming
+      // appointments (matched by caller ID) — ids can't be guessed to
+      // cancel someone else's booking.
+      const today = (ctx.now || new Date()).toISOString().split('T')[0];
+      const mine = await store.findUpcomingAppointments(tenant.id, phone, today);
+      const target = mine.find(a => a.id === bookingId);
+      if (!target) {
+        return { error: 'That booking was not found among this caller\'s upcoming appointments. Use find_my_appointments first.' };
+      }
+
+      await store.updateAppointmentStatus(tenant.id, bookingId, 'cancelled');
+      safeLog(`🗑️ Booking #${bookingId} cancelled — ${target.test_type} ${target.date} ${target.time_slot} [${tenant.id}]`);
+
+      bus.emit('booking.cancelled', { channel: ctx.channel, phone, tenantId: tenant.id }, {
+        booking_id: bookingId,
+        test_type: target.test_type,
+        date: target.date,
+        time_slot: target.time_slot,
+        status: 'cancelled',
+        summary: `${target.test_type} on ${target.date} at ${target.time_slot} cancelled over ${ctx.channel || 'phone'}.`,
+      });
+
+      return {
+        cancelled: true,
+        booking_id: bookingId,
+        test_type: target.test_type,
+        date: target.date,
+        time_slot: target.time_slot,
+        lab_name: tenant.labName,
+      };
+    },
   };
 
   return {

@@ -61,6 +61,27 @@ const functionDeclarations = [
       required: ['patient_name', 'test_type', 'date', 'time_slot'],
     },
   },
+  {
+    name: 'find_my_appointments',
+    description:
+      'Look up the caller\'s upcoming confirmed appointments at this lab, matched automatically by their caller ID. Use before cancelling or rescheduling, or when the caller asks about an existing appointment. Takes no arguments.',
+    parameters: { type: 'OBJECT', properties: {} },
+  },
+  {
+    name: 'cancel_appointment',
+    description:
+      'Cancel one of the caller\'s upcoming appointments. Only call after find_my_appointments returned the booking and the caller explicitly confirmed which one to cancel. To reschedule: cancel the old appointment, then book the new slot with book_appointment.',
+    parameters: {
+      type: 'OBJECT',
+      properties: {
+        booking_id: {
+          type: 'NUMBER',
+          description: 'The booking_id returned by find_my_appointments.',
+        },
+      },
+      required: ['booking_id'],
+    },
+  },
 ];
 
 // Per-tool argument whitelists consumed by hipaa.guardToolArgs.
@@ -68,6 +89,8 @@ const TOOL_ARG_WHITELIST = {
   list_available_tests: [],
   check_availability: ['date', 'time_slot'],
   book_appointment: ['patient_name', 'phone_number', 'test_type', 'date', 'time_slot'],
+  find_my_appointments: [],
+  cancel_appointment: ['booking_id'],
 };
 
 module.exports = { functionDeclarations, TOOL_ARG_WHITELIST, TEST_CATALOG };

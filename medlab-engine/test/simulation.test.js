@@ -745,3 +745,196 @@ test('dashboard: engine seeds counters + ring buffer from the audit trail at boo
   assert.equal(live.id, 'evt-9');
   assert.equal(engine.events.snapshot('test-lab').counters.calls_answered, 3);
 });
+
+// ══════════════════════════════════════════════════════════════
+// 11. US-MARKET GUARDRAILS — emergency gate, TCPA opt-out,
+//     AI disclosure, cancel/reschedule
+// ══════════════════════════════════════════════════════════════
+const { containsEmergency } = require('../src/compliance/emergency');
+
+test('emergency: distress language short-circuits BEFORE the model — scripted 911 redirect', async () => {
+  const store = createMemoryStore();
+  const generateFn = scriptedModel([{ text: 'model must never produce this' }]);
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+
+  const { reply, emergency, bookedNow, session } = await engine.processTurn({
+    channel: 'voice', from: CALLER, text: 'I am having chest pain right now',
+  });
+
+  assert.equal(emergency, true);
+  assert.equal(bookedNow, false);
+  assert.match(reply, /9 ?1 ?1/);
+  assert.equal(generateFn.seen.length, 0, 'the model must not see an emergency turn');
+  assert.equal(session.history.length, 0, 'distress text must never enter session history');
+  assert.equal(store.appointments.length, 0);
+
+  // PHI-free audit event + counter
+  const ev = engine.events.snapshot().recent.find(e => e.type === 'emergency.detected');
+  assert.ok(ev, 'emergency.detected must be emitted');
+  assert.equal(ev.data.status, 'emergency_redirected');
+  assert.doesNotMatch(JSON.stringify(ev), /chest pain/i, 'event must carry no caller content');
+  assert.equal(engine.events.snapshot().counters.emergency_events, 1);
+
+  // Word-boundary matching: real terms fire, lookalikes don't
+  assert.equal(containsEmergency('my dad is unconscious'), 'unconscious');
+  assert.equal(containsEmergency('I want to log my keystrokes'), null);
+  assert.equal(containsEmergency('book me a blood draw tomorrow'), null);
+});
+
+test('emergency: voice route speaks the redirect and hangs up — no Gather loop', async () => {
+  const engine = createEngine({
+    store: createMemoryStore(), tenant: TENANT,
+    generateFn: scriptedModel([]), now: NOW,
+  });
+  const bundle = createApp({ engine });
+  const { server, port } = await startServer(bundle);
+  try {
+    const turn = await postForm(port, '/webhook/voice/turn', {
+      From: CALLER, CallSid: 'CA_emerg', SpeechResult: 'I think my husband is having a stroke',
+    });
+    assert.equal(turn.status, 200);
+    assert.match(turn.body, /9 1 1/);
+    assert.match(turn.body, /<Hangup\/>/);
+    assert.doesNotMatch(turn.body, /<Gather/);
+  } finally {
+    server.close();
+  }
+});
+
+test('tcpa: STOP is honored deterministically — suppresses the AI until START restores', async () => {
+  const store = createMemoryStore();
+  const generateFn = alexBookingScript();
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+  const sent = [];
+  const bundle = createApp({
+    engine,
+    sendWhatsApp: async (to, body) => sent.push({ to, body }),
+    batchWindowMs: 10,
+  });
+  const { server, port } = await startServer(bundle);
+  const waFrom = `whatsapp:${CALLER}`;
+
+  try {
+    // STOP → opt-out recorded + single confirmation, model never invoked
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: 'STOP', MessageSid: 'SM_stop_1',
+    });
+    await waitFor(() => sent.length >= 1);
+    assert.match(sent[0].body, /unsubscribed/i);
+    assert.match(sent[0].body, /START/);
+    assert.equal(await store.isOptedOut('test-lab', CALLER), true);
+    assert.equal(generateFn.seen.length, 0, 'STOP must never reach the model');
+    const optEv = engine.events.snapshot().recent.find(e => e.type === 'optout.received');
+    assert.ok(optEv, 'optout.received must be emitted');
+
+    // Opted out: a booking attempt is suppressed with a service note only
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: ALEX_UTTERANCE, MessageSid: 'SM_stop_2',
+    });
+    await waitFor(() => sent.length >= 2);
+    assert.match(sent[1].body, /opted out/i);
+    await new Promise(r => setTimeout(r, 40)); // outlast the batch window
+    assert.equal(generateFn.seen.length, 0, 'opted-out messages must not reach the model');
+    assert.equal(store.appointments.length, 0);
+
+    // START → restored, then booking flows normally again
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: 'start', MessageSid: 'SM_stop_3',
+    });
+    await waitFor(() => sent.length >= 3);
+    assert.match(sent[2].body, /re-subscribed/i);
+    assert.equal(await store.isOptedOut('test-lab', CALLER), false);
+
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: ALEX_UTTERANCE, MessageSid: 'SM_stop_4',
+    });
+    await waitFor(() => store.appointments.length >= 1);
+    assert.equal(store.appointments[0].patient_name, 'Alex');
+  } finally {
+    server.close();
+  }
+});
+
+test('disclosure: voice greeting and first WhatsApp reply identify the AI', async () => {
+  const store = createMemoryStore();
+  const engine = createEngine({
+    store, tenant: TENANT,
+    generateFn: scriptedModel([
+      { text: 'Hi! What test would you like to book?' },
+      { text: 'Great — what day works for you?' },
+    ]),
+    now: NOW,
+  });
+  const bundle = createApp({ engine });
+  const { server, port } = await startServer(bundle);
+  try {
+    const greet = await postForm(port, '/webhook/voice', { From: CALLER, CallSid: 'CA_disc' });
+    assert.match(greet.body, /A I assistant/, 'voice greeting must disclose the AI');
+  } finally {
+    server.close();
+  }
+
+  // First WA turn gets the deterministic disclosure prefix…
+  const first = await engine.processTurn({
+    channel: 'whatsapp', from: `whatsapp:${CALLER}`, text: 'hi',
+  });
+  assert.match(first.reply, /^You're chatting with BrightPath Diagnostics's automated AI assistant\./);
+
+  // …and later turns don't repeat it.
+  const second = await engine.processTurn({
+    channel: 'whatsapp', from: `whatsapp:${CALLER}`, text: 'a blood draw please',
+  });
+  assert.doesNotMatch(second.reply, /automated AI assistant/);
+
+  // The system prompt carries the never-claim-human rule.
+  const { buildSystemPrompt } = require('../src/services/gemini');
+  assert.match(buildSystemPrompt(TENANT, '2026-07-04'), /Never claim or imply you are human/);
+});
+
+test('tools: cancel flow — find_my_appointments + cancel_appointment frees the slot', async () => {
+  const store = createMemoryStore();
+  await store.insertAppointment({
+    tenant_id: 'test-lab', patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'voice', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const generateFn = scriptedModel([
+    { functionCalls: [{ name: 'find_my_appointments', args: {} }] },
+    { functionCalls: [{ name: 'cancel_appointment', args: { booking_id: 1 } }] },
+    { text: 'Done — your Lipid Panel on Thursday at 10 AM is cancelled. Anything else?' },
+  ]);
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+
+  const { reply } = await engine.processTurn({
+    channel: 'voice', from: CALLER, text: 'I need to drop my Thursday booking',
+  });
+
+  assert.match(reply, /cancelled/i);
+  assert.equal(store.appointments[0].status, 'cancelled');
+  assert.equal(await store.countBookings('test-lab', THURSDAY, '10:00'), 0, 'slot must be freed');
+
+  const ev = engine.events.snapshot().recent.find(e => e.type === 'booking.cancelled');
+  assert.ok(ev, 'booking.cancelled must be emitted');
+  assert.equal(ev.data.booking_id, 1);
+  assert.equal(ev.data.status, 'cancelled');
+});
+
+test('tools: cancel_appointment rejects a booking_id that is not the caller own booking', async () => {
+  const store = createMemoryStore();
+  await store.insertAppointment({
+    tenant_id: 'test-lab', patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'voice', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const toolExecutor = createToolHandlers({ store, tenant: TENANT });
+  const result = await toolExecutor.execute(
+    'cancel_appointment',
+    { booking_id: 1 },
+    { tenant: TENANT, callerPhone: '+15550009999', now: NOW } // different caller
+  );
+
+  assert.ok(result.error, 'foreign caller must not cancel the booking');
+  assert.equal(store.appointments[0].status, 'confirmed', 'record must be untouched');
+});

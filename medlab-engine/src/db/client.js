@@ -9,10 +9,21 @@ const config = require('../config');
 function createMemoryStore() {
   const appointments = [];
   const auditEvents = [];
+  const optOuts = new Set(); // `${tenantId}|${phone}`
   return {
     kind: 'memory',
     appointments, // exposed for test assertions
     auditEvents,  // exposed for test assertions
+
+    async setOptOut(tenantId, phone, optedOut) {
+      const k = `${tenantId}|${phone}`;
+      if (optedOut) optOuts.add(k);
+      else optOuts.delete(k);
+    },
+
+    async isOptedOut(tenantId, phone) {
+      return optOuts.has(`${tenantId}|${phone}`);
+    },
 
     async insertAppointment(record) {
       const row = { id: appointments.length + 1, ...record };
@@ -40,6 +51,22 @@ function createMemoryStore() {
       return appointments.filter(
         a => a.tenant_id === tenantId && a.date === date && a.status === 'confirmed'
       );
+    },
+
+    async findUpcomingAppointments(tenantId, phone, fromDate) {
+      return appointments
+        .filter(
+          a => a.tenant_id === tenantId && a.phone_number === phone &&
+               a.status === 'confirmed' && a.date >= fromDate
+        )
+        .sort((a, b) => (a.date + a.time_slot).localeCompare(b.date + b.time_slot));
+    },
+
+    async updateAppointmentStatus(tenantId, id, status) {
+      const row = appointments.find(a => a.id === id && a.tenant_id === tenantId);
+      if (!row) return null;
+      row.status = status;
+      return row;
     },
 
     // Memory store has no tenant table — the engine falls back to its
@@ -77,6 +104,26 @@ function createSupabaseStore() {
   const supabase = createClient(config.supabase.url, config.supabase.key);
   return {
     kind: 'supabase',
+
+    async setOptOut(tenantId, phone, optedOut) {
+      const { error } = await supabase
+        .from('optouts')
+        .upsert(
+          { tenant_id: tenantId, phone_number: phone, opted_out: optedOut, updated_at: new Date().toISOString() },
+          { onConflict: 'tenant_id,phone_number' }
+        );
+      if (error) throw new Error(`Supabase opt-out upsert failed: ${error.message}`);
+    },
+
+    async isOptedOut(tenantId, phone) {
+      const { data, error } = await supabase
+        .from('optouts')
+        .select('opted_out')
+        .eq('tenant_id', tenantId).eq('phone_number', phone)
+        .maybeSingle();
+      if (error) throw new Error(`Supabase opt-out lookup failed: ${error.message}`);
+      return Boolean(data?.opted_out);
+    },
 
     async insertAppointment(record) {
       const { data, error } = await supabase
@@ -129,6 +176,27 @@ function createSupabaseStore() {
         .eq('tenant_id', tenantId).eq('date', date).eq('status', 'confirmed');
       if (error) throw new Error(`Supabase select failed: ${error.message}`);
       return data || [];
+    },
+
+    async findUpcomingAppointments(tenantId, phone, fromDate) {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, phone_number, test_type, date, time_slot, status')
+        .eq('tenant_id', tenantId).eq('phone_number', phone)
+        .eq('status', 'confirmed').gte('date', fromDate)
+        .order('date').order('time_slot');
+      if (error) throw new Error(`Supabase select failed: ${error.message}`);
+      return data || [];
+    },
+
+    async updateAppointmentStatus(tenantId, id, status) {
+      const { data, error } = await supabase
+        .from('appointments')
+        .update({ status })
+        .eq('tenant_id', tenantId).eq('id', id)
+        .select().maybeSingle();
+      if (error) throw new Error(`Supabase update failed: ${error.message}`);
+      return data;
     },
 
     async getTenantByNumber(number) {

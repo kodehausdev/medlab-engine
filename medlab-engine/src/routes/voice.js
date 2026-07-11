@@ -16,9 +16,13 @@ function createVoiceRouter({ engine }) {
   router.post('/webhook/voice', async (req, res) => {
     // The called number identifies the lab (multi-tenant routing).
     const tenant = await engine.resolveTenant(req.body?.To);
+    // Proactive AI disclosure in the greeting (CA B.O.T. law / Utah AI
+    // Policy Act posture): the caller hears they've reached an AI before
+    // any data is collected.
     const greeting =
       `Thanks for calling ${tenant.labName}. ` +
-      `I can book lab appointments — what test do you need, and when?`;
+      `I'm an automated A I assistant, and I can book lab appointments — ` +
+      `what test do you need, and when?`;
     res.type('text/xml').send(gatherTwiml(greeting, turnUrl));
   });
 
@@ -34,8 +38,15 @@ function createVoiceRouter({ engine }) {
     }
 
     try {
-      const { reply, bookedNow, session, tenant } =
+      const { reply, bookedNow, emergency, session, tenant } =
         await engine.processTurn({ channel: 'voice', from, to, text: speech });
+
+      // Emergency gate fired: deliver the scripted 911 redirect and release
+      // the line immediately — no further Gather loop.
+      if (emergency) {
+        engine.endSession('voice', from, tenant.id);
+        return res.type('text/xml').send(sayHangupTwiml(reply));
+      }
 
       // After a confirmed booking, deliver the confirmation and end the call
       // on the model's closing turn rather than looping forever.
