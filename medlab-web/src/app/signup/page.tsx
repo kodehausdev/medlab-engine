@@ -16,8 +16,8 @@ const STEPS = ["Lab profile", "Owner account", "Review & create account"];
 
 function FlaskLogo() {
   return (
-    <div className="grid size-9 place-items-center rounded-xl bg-gradient-to-br from-indigo-600 to-blue-600">
-      <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.2" strokeLinecap="round">
+    <div className="grid size-11 flex-none place-items-center rounded-[14px] bg-[#e8785030]">
+      <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="var(--color-terracotta)" strokeWidth="2.2" strokeLinecap="round">
         <path d="M9 3v7l-4.5 8a2 2 0 0 0 1.8 3h11.4a2 2 0 0 0 1.8-3L15 10V3" />
         <path d="M7.5 3h9" />
         <path d="M8 14h8" />
@@ -27,7 +27,9 @@ function FlaskLogo() {
 }
 
 const inputCls =
-  "rounded-lg border border-slate-300 bg-slate-50 px-3.5 py-2.5 text-sm outline-none focus:border-indigo-500 focus:bg-white";
+  "w-full appearance-none rounded-full border border-cream-border bg-cream-input px-[18px] py-[13px] text-sm text-ink outline-none focus:border-terracotta";
+
+const labelCls = "flex flex-col gap-1.5 font-onboarding text-[12.5px] font-semibold text-cream-label";
 
 function SignupWizard() {
   const router = useRouter();
@@ -78,15 +80,15 @@ function SignupWizard() {
   }
 
   return (
-    <div className="min-h-screen bg-slate-100 py-10">
-      <div className="mx-auto w-full max-w-lg px-5">
+    <div className="min-h-screen bg-cream-page py-10 font-onboarding">
+      <div className="mx-auto w-full max-w-[600px] px-5">
         <div className="mb-5 flex items-center gap-3">
           <FlaskLogo />
           <div>
-            <div className="text-[15px] font-bold tracking-tight">MedLab AI</div>
-            <div className="font-mono text-[10.5px] text-slate-500">NEW LAB SETUP</div>
+            <div className="text-[17px] font-semibold tracking-tight text-ink">MedLab AI</div>
+            <div className="text-[10px] font-semibold tracking-[0.08em] text-cream-faint uppercase">NEW LAB SETUP</div>
           </div>
-          <Link href="/login" className="ml-auto text-xs font-semibold text-indigo-700 hover:underline">
+          <Link href="/login" className="ml-auto text-[13px] font-semibold text-terracotta hover:text-terracotta-dark">
             Already set up? Sign in
           </Link>
         </div>
@@ -98,23 +100,25 @@ function SignupWizard() {
               <span
                 className={
                   i < step
-                    ? "grid size-6 flex-none place-items-center rounded-full bg-green-100 text-[11px] font-bold text-green-700"
+                    ? "grid size-6.5 flex-none place-items-center rounded-full bg-terracotta text-[13px] font-semibold text-white"
                     : i === step
-                      ? "grid size-6 flex-none place-items-center rounded-full bg-indigo-600 text-[11px] font-bold text-white"
-                      : "grid size-6 flex-none place-items-center rounded-full border border-slate-300 bg-white text-[11px] font-bold text-slate-400"
+                      ? "grid size-6.5 flex-none place-items-center rounded-full bg-terracotta text-[12px] font-semibold text-white"
+                      : "grid size-6.5 flex-none place-items-center rounded-full border border-cream-border bg-white text-[12px] font-semibold text-cream-faint"
                 }
               >
                 {i < step ? "✓" : i + 1}
               </span>
-              <span className={`text-xs font-medium whitespace-nowrap ${i === step ? "text-slate-900" : "text-slate-400"}`}>
+              <span className={`text-[13px] font-semibold whitespace-nowrap ${i <= step ? "text-ink" : "text-cream-faint"}`}>
                 {label}
               </span>
-              {i < STEPS.length - 1 && <span className="h-0.5 flex-1 rounded bg-slate-200" />}
+              {i < STEPS.length - 1 && (
+                <span className={`h-0.5 flex-1 rounded ${i < step ? "bg-terracotta" : "bg-cream-border"}`} />
+              )}
             </div>
           ))}
         </div>
 
-        <div className="rounded-2xl border border-slate-200 bg-white p-6 shadow-sm">
+        <div className="rounded-2xl border border-cream-border bg-cream px-6 pt-7 pb-6 shadow-[0_8px_30px_rgba(120,80,50,0.12)] sm:px-10 sm:pt-9 sm:pb-7">
           {error ? (
             <div className="mb-4 rounded-lg border border-amber-200 bg-amber-50 px-3.5 py-2.5 text-xs text-amber-800">
               {error}
@@ -123,12 +127,15 @@ function SignupWizard() {
 
           {step === 0 && (
             <form onSubmit={next} className="flex flex-col gap-3.5">
-              <h1 className="text-lg font-bold tracking-tight">Tell us about your lab</h1>
-              <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
+              <h1 className="font-display text-[22px] font-medium text-ink">Tell us about your lab</h1>
+              <p className="-mt-2 text-[13.5px] text-cream-muted">
+                A few details so we can set up your draw station just right.
+              </p>
+              <label className={labelCls}>
                 Lab / draw-station name
                 <input required minLength={2} value={labName} onChange={(e) => setLabName(e.target.value)} placeholder="BrightPath Diagnostics — Midtown" className={inputCls} />
               </label>
-              <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
+              <label className={labelCls}>
                 Timezone
                 <select value={timezone} onChange={(e) => setTimezone(e.target.value)} className={inputCls}>
                   {TIMEZONES.map((tz) => (
@@ -136,8 +143,8 @@ function SignupWizard() {
                   ))}
                 </select>
               </label>
-              <div className="grid grid-cols-3 gap-3">
-                <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
+              <div className="grid grid-cols-3 gap-3.5">
+                <label className={labelCls}>
                   Opens
                   <select value={openHour} onChange={(e) => setOpenHour(Number(e.target.value))} className={inputCls}>
                     {Array.from({ length: 12 }, (_, h) => h + 5).map((h) => (
@@ -145,7 +152,7 @@ function SignupWizard() {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
+                <label className={labelCls}>
                   Closes
                   <select value={closeHour} onChange={(e) => setCloseHour(Number(e.target.value))} className={inputCls}>
                     {Array.from({ length: 12 }, (_, h) => h + 12).map((h) => (
@@ -153,7 +160,7 @@ function SignupWizard() {
                     ))}
                   </select>
                 </label>
-                <label className="flex flex-col gap-1.5 text-xs font-semibold text-slate-600">
+                <label className={labelCls}>
                   Draw chairs
                   <select value={slotCapacity} onChange={(e) => setSlotCapacity(Number(e.target.value))} className={inputCls}>
                     {[1, 2, 3, 4, 5, 6, 8].map((n) => (
@@ -162,7 +169,7 @@ function SignupWizard() {
                   </select>
                 </label>
               </div>
-              <button type="submit" className="mt-1 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+              <button type="submit" className="mt-1 rounded-full bg-terracotta py-[15px] text-sm font-semibold text-white shadow-[0_6px_18px_rgba(201,111,74,0.35)] hover:bg-terracotta-dark">
                 Continue
               </button>
             </form>
@@ -170,16 +177,16 @@ function SignupWizard() {
 
           {step === 1 && (
             <form onSubmit={next} className="flex flex-col gap-3.5">
-              <h1 className="text-lg font-bold tracking-tight">Owner account</h1>
-              <p className="-mt-1 text-xs text-slate-500">You&apos;ll use this to sign in to the console. Staff accounts come later.</p>
+              <h1 className="font-display text-[22px] font-medium text-ink">Owner account</h1>
+              <p className="-mt-2 text-[13.5px] text-cream-muted">You&apos;ll use this to sign in to the console. Staff accounts come later.</p>
               <input type="email" required value={email} onChange={(e) => setEmail(e.target.value)} placeholder="you@yourlab.com" className={inputCls} />
               <input type="password" required minLength={8} value={password} onChange={(e) => setPassword(e.target.value)} placeholder="Password (min 8 characters)" className={inputCls} />
               <input type="password" required value={confirm} onChange={(e) => setConfirm(e.target.value)} placeholder="Confirm password" className={inputCls} />
-              <div className="mt-1 flex gap-2.5">
-                <button type="button" onClick={() => setStep(0)} className="rounded-lg border border-slate-300 px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50">
+              <div className="mt-1 flex gap-3">
+                <button type="button" onClick={() => setStep(0)} className="flex-none rounded-full border border-cream-border bg-white px-6 py-[15px] text-sm font-semibold text-cream-label hover:bg-cream-page">
                   Back
                 </button>
-                <button type="submit" className="flex-1 rounded-lg bg-indigo-600 py-2.5 text-sm font-semibold text-white hover:bg-indigo-700">
+                <button type="submit" className="flex-1 rounded-full bg-terracotta py-[15px] text-sm font-semibold text-white shadow-[0_6px_18px_rgba(201,111,74,0.35)] hover:bg-terracotta-dark">
                   Continue
                 </button>
               </div>
@@ -188,24 +195,24 @@ function SignupWizard() {
 
           {step === 2 && (
             <div className="flex flex-col gap-4">
-              <h1 className="text-lg font-bold tracking-tight">Review &amp; create account</h1>
-              <div className="rounded-xl border border-slate-200 bg-slate-50 p-4 text-sm">
-                <div className="flex justify-between py-1"><span className="text-slate-500">Lab</span><span className="font-semibold">{labName}</span></div>
-                <div className="flex justify-between py-1"><span className="text-slate-500">Hours</span><span className="font-semibold">{openHour}:00 – {closeHour}:00 · {timezone.split("/")[1]?.replace("_", " ")}</span></div>
-                <div className="flex justify-between py-1"><span className="text-slate-500">Draw chairs</span><span className="font-semibold">{slotCapacity}</span></div>
-                <div className="flex justify-between py-1"><span className="text-slate-500">Owner</span><span className="font-semibold">{email}</span></div>
-                <div className="mt-2 flex justify-between border-t border-slate-200 pt-2.5">
-                  <span className="text-slate-500">Plan</span>
-                  <span className="font-bold">$297<span className="text-xs font-medium text-slate-500">/mo per location</span></span>
+              <h1 className="font-display text-[22px] font-medium text-ink">Review &amp; create account</h1>
+              <div className="rounded-2xl border border-cream-border bg-cream-input p-5.5 text-sm">
+                <div className="flex justify-between py-2"><span className="text-cream-muted">Lab</span><span className="font-semibold text-ink">{labName}</span></div>
+                <div className="flex justify-between py-2"><span className="text-cream-muted">Hours</span><span className="font-semibold text-ink">{openHour}:00 – {closeHour}:00 · {timezone.split("/")[1]?.replace("_", " ")}</span></div>
+                <div className="flex justify-between py-2"><span className="text-cream-muted">Draw chairs</span><span className="font-semibold text-ink">{slotCapacity}</span></div>
+                <div className="flex justify-between py-2"><span className="text-cream-muted">Owner</span><span className="font-semibold text-ink">{email}</span></div>
+                <div className="mt-1 flex justify-between border-t border-cream-border pt-3">
+                  <span className="text-cream-muted">Plan</span>
+                  <span className="text-lg font-bold text-terracotta">$297<span className="text-[13px] font-medium text-cream-muted">/mo per location</span></span>
                 </div>
               </div>
-              <button onClick={finishSignup} disabled={busy} className="rounded-lg bg-indigo-600 py-3 text-sm font-semibold text-white hover:bg-indigo-700 disabled:opacity-60">
+              <button onClick={finishSignup} disabled={busy} className="rounded-full bg-terracotta py-[15px] text-sm font-semibold text-white shadow-[0_6px_18px_rgba(201,111,74,0.35)] hover:bg-terracotta-dark disabled:opacity-60">
                 {busy ? "Creating your console…" : "Create my console →"}
               </button>
-              <button onClick={() => setStep(1)} className="text-xs font-semibold text-slate-500 hover:text-slate-700">
+              <button onClick={() => setStep(1)} className="text-center text-[13px] font-medium text-terracotta hover:text-terracotta-dark">
                 ← Back
               </button>
-              <p className="text-center font-mono text-[10px] text-slate-400">
+              <p className="text-center text-[10.5px] font-medium tracking-[0.04em] text-cream-faint uppercase">
                 NO CHARGE TODAY · SECURE YOUR CARD NEXT · NO PATIENT DATA REQUIRED TO START
               </p>
             </div>
