@@ -19,8 +19,10 @@ medlab-engine/
 │   │   └── engine.js             # channel-agnostic processTurn() — descendant
 │   │                             #   of TCD handleMessage(); all deps injectable
 │   ├── routes/
-│   │   ├── whatsapp.js           # POST /webhook/whatsapp — ack-first, MessageSid
-│   │   │                         #   dedupe, 4s per-sender batching (TCD pattern)
+│   │   ├── textChannel.js        # shared SMS/WA webhook — ack-first, MessageSid
+│   │   │                         #   dedupe, TCPA opt-out gate, 4s batching
+│   │   ├── sms.js                # POST /webhook/sms — US text-to-book (primary)
+│   │   ├── whatsapp.js           # POST /webhook/whatsapp
 │   │   ├── voice.js              # POST /webhook/voice (+/turn, +/stream) —
 │   │   │                         #   <Gather input="speech"> turn loop (prod path)
 │   │   └── dashboard.js          # GET /api/dashboard/state + /events (SSE) —
@@ -87,16 +89,16 @@ Model-independent gates layered on top of the HIPAA controls:
    911/ER redirect, `emergency.detected` audit event, no tools run, the
    caller's words never enter session history; voice hangs up after the
    script. Deliberately over-triggers — a receptionist must never triage.
-2. **TCPA/CTIA opt-out** (`routes/whatsapp.js` + `optouts` table) — exact
-   whole-message STOP-family keywords are honored deterministically, never
-   routed through the model. Opted-out numbers get no AI processing and no
-   outbound sends beyond a scripted "reply START to opt back in" note.
-   START/UNSTOP/YES reverses it. Note: bare "cancel" opts out per CTIA;
-   "cancel my appointment" flows to the engine normally.
+2. **TCPA/CTIA opt-out** (`routes/textChannel.js` + `optouts` table) — exact
+   whole-message STOP-family keywords are honored deterministically on both
+   SMS and WhatsApp, never routed through the model. Opted-out numbers get
+   no AI processing and no outbound sends beyond a scripted "reply START to
+   opt back in" note. START/UNSTOP/YES reverses it. Note: bare "cancel"
+   opts out per CTIA; "cancel my appointment" flows to the engine normally.
 3. **AI disclosure** (CA B.O.T. law / Utah AI Policy Act posture) — the
-   voice greeting and the first WhatsApp reply of every conversation
-   disclose the AI deterministically; the system prompt additionally forbids
-   ever claiming to be human.
+   voice greeting and the first text reply of every conversation (SMS and
+   WhatsApp) disclose the AI deterministically; the system prompt
+   additionally forbids ever claiming to be human.
 4. **Caller-scoped cancel/reschedule** — `find_my_appointments` +
    `cancel_appointment` tools match strictly by caller ID; a booking_id
    that isn't among the caller's own upcoming appointments is refused, so
@@ -133,6 +135,8 @@ Model auth is either/or:
 
 Point the Twilio number at:
 - Voice webhook → `POST {PUBLIC_BASE_URL}/webhook/voice` (Gather loop, prod)
+- SMS/Messaging webhook → `POST {PUBLIC_BASE_URL}/webhook/sms` (primary US
+  text-to-book channel — the same number carries voice and SMS)
 - WhatsApp webhook → `POST {PUBLIC_BASE_URL}/webhook/whatsapp`
 - Streaming voice (beta) → `POST {PUBLIC_BASE_URL}/webhook/voice/stream`
 

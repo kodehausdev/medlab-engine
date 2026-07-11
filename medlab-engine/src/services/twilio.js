@@ -23,6 +23,33 @@ async function sendWhatsApp(to, body) {
   }
 }
 
+/**
+ * Outbound SMS. `from` is the tenant number the inbound text arrived on —
+ * replies always come from the number the patient texted. Falls back to
+ * TWILIO_SMS_NUMBER for sends outside a webhook context.
+ */
+async function sendSms(to, body, from) {
+  const { accountSid, authToken, smsNumber } = config.twilio;
+  const fromNumber = from || smsNumber;
+  if (!fromNumber) {
+    safeLog('❌ Twilio SMS send skipped: no From number (set TWILIO_SMS_NUMBER)');
+    return;
+  }
+  try {
+    await axios.post(
+      `https://api.twilio.com/2010-04-01/Accounts/${accountSid}/Messages.json`,
+      new URLSearchParams({ From: fromNumber, To: to, Body: body }).toString(),
+      {
+        auth: { username: accountSid, password: authToken },
+        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+      }
+    );
+    safeLog(`📤 [Twilio→SMS] sent to ${to}`);
+  } catch (e) {
+    safeLog(`❌ Twilio SMS send failed: ${e.response?.status || ''} ${e.message}`);
+  }
+}
+
 function escapeXml(s) {
   return String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
@@ -63,4 +90,4 @@ function streamTwiml(wsUrl) {
 </Response>`;
 }
 
-module.exports = { sendWhatsApp, gatherTwiml, sayHangupTwiml, streamTwiml };
+module.exports = { sendWhatsApp, sendSms, gatherTwiml, sayHangupTwiml, streamTwiml };

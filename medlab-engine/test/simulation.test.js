@@ -938,3 +938,71 @@ test('tools: cancel_appointment rejects a booking_id that is not the caller own 
   assert.ok(result.error, 'foreign caller must not cancel the booking');
   assert.equal(store.appointments[0].status, 'confirmed', 'record must be untouched');
 });
+
+// ══════════════════════════════════════════════════════════════
+// 12. SMS CHANNEL — US text-to-book over plain Twilio SMS
+// ══════════════════════════════════════════════════════════════
+test('sms: text-to-book flows end to end — disclosure, tenant-number reply, sms channel row', async () => {
+  const store = createMemoryStore();
+  const generateFn = alexBookingScript();
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+  const sent = [];
+  const bundle = createApp({
+    engine,
+    sendSms: async (to, body, via) => sent.push({ to, body, via }),
+    batchWindowMs: 10,
+  });
+  const { server, port } = await startServer(bundle);
+  const LAB_NUMBER = '+15550001111';
+
+  try {
+    const res = await postForm(port, '/webhook/sms', {
+      From: CALLER,
+      To: LAB_NUMBER,
+      Body: ALEX_UTTERANCE,
+      MessageSid: 'SM_sms_1',
+    });
+    assert.equal(res.status, 200);
+
+    await waitFor(() => sent.length >= 1);
+
+    // Reply goes back to the caller FROM the number they texted
+    assert.equal(sent[0].to, CALLER);
+    assert.equal(sent[0].via, LAB_NUMBER);
+    // First text reply carries the AI disclosure, then the confirmation
+    assert.match(sent[0].body, /^You're chatting with BrightPath Diagnostics's automated AI assistant\./);
+    assert.match(sent[0].body, /You're all set, Alex/);
+
+    // Appointment row is channel-tagged 'sms'
+    assert.equal(store.appointments.length, 1);
+    assert.equal(store.appointments[0].channel, 'sms');
+    assert.equal(store.appointments[0].phone_number, CALLER);
+  } finally {
+    server.close();
+  }
+});
+
+test('sms: the TCPA STOP gate covers SMS through the shared text-channel router', async () => {
+  const store = createMemoryStore();
+  const generateFn = scriptedModel([{ text: 'model must not run' }]);
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+  const sent = [];
+  const bundle = createApp({
+    engine,
+    sendSms: async (to, body, via) => sent.push({ to, body, via }),
+    batchWindowMs: 10,
+  });
+  const { server, port } = await startServer(bundle);
+
+  try {
+    await postForm(port, '/webhook/sms', {
+      From: CALLER, To: '+15550001111', Body: 'STOP', MessageSid: 'SM_sms_stop',
+    });
+    await waitFor(() => sent.length >= 1);
+    assert.match(sent[0].body, /unsubscribed/i);
+    assert.equal(await store.isOptedOut('test-lab', CALLER), true);
+    assert.equal(generateFn.seen.length, 0, 'STOP must never reach the model');
+  } finally {
+    server.close();
+  }
+});

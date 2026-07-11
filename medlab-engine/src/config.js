@@ -25,6 +25,9 @@ const config = {
     accountSid: process.env.TWILIO_ACCOUNT_SID || '',
     authToken: process.env.TWILIO_AUTH_TOKEN || '',
     whatsappNumber: process.env.TWILIO_WHATSAPP_NUMBER || '',
+    // Outbound SMS fallback From. Usually unneeded: replies go out from the
+    // tenant number the inbound text arrived on.
+    smsNumber: process.env.TWILIO_SMS_NUMBER || '',
     // Enable on deployed engines (needs the exact public URL to verify).
     validateWebhooks: process.env.TWILIO_VALIDATE_WEBHOOKS === 'true',
   },

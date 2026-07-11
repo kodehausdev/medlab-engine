@@ -163,8 +163,9 @@ function createEngine(overrides = {}) {
     if (bookedNow) session.completed = true;
 
     // Proactive AI disclosure on the first text reply of a conversation —
-    // deterministic, not left to the model. (Voice discloses in its greeting.)
-    const disclosed = firstTurn && channel === 'whatsapp'
+    // deterministic, not left to the model, on every text channel (SMS,
+    // WhatsApp). Voice discloses in its greeting instead.
+    const disclosed = firstTurn && channel !== 'voice'
       ? `You're chatting with ${tenant.labName}'s automated AI assistant.\n\n${reply}`
       : reply;
 

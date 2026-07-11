@@ -37,7 +37,7 @@ create table if not exists appointments (
   test_type text not null,
   date date not null,
   time_slot text not null,                -- 'HH:MM' 24h
-  channel text not null,                  -- 'voice' | 'whatsapp'
+  channel text not null,                  -- 'voice' | 'sms' | 'whatsapp'
   status text default 'confirmed',        -- confirmed | cancelled | completed
   created_at timestamptz default now()
 );
@@ -65,7 +65,7 @@ create table if not exists audit_events (
   tenant_id text,
   event_id text,                          -- engine envelope id ('evt-7', per-process)
   type text not null,                     -- 'call.answered' | 'booking.confirmed' | 'guardrail.redacted'
-  channel text default 'unknown',         -- 'voice' | 'whatsapp'
+  channel text default 'unknown',         -- 'voice' | 'sms' | 'whatsapp'
   phone_tail text,                        -- last 4 digits only
   data jsonb default '{}',                -- type-specific, whitelisted fields only
   created_at timestamptz default now()
