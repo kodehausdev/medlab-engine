@@ -105,6 +105,21 @@ Model-independent gates layered on top of the HIPAA controls:
    ids can't be guessed to cancel someone else's booking. Reschedule =
    cancel + rebook. Emits `booking.cancelled`.
 
+## Twilio send reliability
+
+`services/twilio.js` retries outbound sends up to twice on HTTP 429,
+honoring Twilio's `Retry-After` header when present. Known non-retryable
+error codes (currently just `63038`, a trial-account daily quota) skip
+retries entirely rather than burning time on a request that can't succeed
+until the quota resets — **this is not an account flag or blacklist
+signal**, it's the standard 50 message/day cap every Twilio trial account
+has, on a rolling 24h window; upgrading off the trial tier removes it.
+Failure logs always use Twilio's own `message`/`code` verbatim, never a
+guessed explanation. Separately, `compliance/redact.js`'s phone-number
+regex is boundary-checked so it doesn't mangle Twilio SIDs (long hex
+strings that frequently contain 9+ consecutive digits) when redacting log
+lines — a real bug that corrupted diagnostic detail before it was fixed.
+
 > Note: technical controls ≠ compliance. Production still needs a Twilio
 > BAA (available on their HIPAA-eligible products), hosting under a BAA,
 > access controls, and a signed BAA with each lab customer. For the model
