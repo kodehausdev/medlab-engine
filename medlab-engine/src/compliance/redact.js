@@ -21,7 +21,12 @@ const PHI_PATTERNS = [
 
 // Phone numbers are operationally required (it's how we call patients back),
 // so in logs we mask all but the last 4 digits rather than dropping them.
-const PHONE_RE = /(\+?\d[\d\s\-().]{7,}\d)/g;
+// Bounded on both sides by "not a letter": Twilio SIDs (e.g. Account SIDs)
+// are long hex strings that frequently contain 9+ consecutive digits by
+// chance — without the boundary this regex mangles them mid-string, which
+// corrupts exactly the diagnostic detail (the SID) an admin needs to look
+// up the failure in the Twilio console.
+const PHONE_RE = /(?<![a-zA-Z])(\+?\d[\d\s\-().]{7,}\d)(?![a-zA-Z])/g;
 
 // Terms that signal unstructured health history / diagnosis content.
 // If a caller volunteers this, the engine acknowledges without recording it.

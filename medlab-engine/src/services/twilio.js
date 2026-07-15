@@ -6,18 +6,26 @@ const config = require('../config');
 const { safeLog } = require('../compliance/hipaa');
 
 const MAX_429_RETRIES = 2;
-// Twilio's documented WhatsApp Sandbox floor: 1 message per 3 seconds.
-// Used only when Twilio doesn't send a Retry-After header on a 429.
-const SANDBOX_MIN_INTERVAL_MS = 3000;
+// Generic-throttle backoff floor, used only when Twilio's 429 gives no
+// Retry-After header. NOT a claim about why the 429 happened — Twilio's own
+// error `code`/`message` says that; this is just a reasonable wait before
+// trying again for a throttle-shaped error.
+const DEFAULT_BACKOFF_MS = 3000;
+
+// Twilio error codes that mean "retrying will fail again, don't bother":
+// hard daily/monthly quotas, not a transient throttle.
+// https://www.twilio.com/docs/api/errors/63038
+const NON_RETRYABLE_429_CODES = new Set([63038]);
 
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 
 /**
- * POSTs one Twilio message with bounded 429 retry. Twilio's Retry-After
- * header (seconds) drives the backoff when present; otherwise falls back to
- * the sandbox's documented 3s floor. Always logs the concrete wait time on
- * both retry and final failure — a bare "429" with no duration is useless
- * for figuring out when to try again.
+ * POSTs one Twilio message with bounded 429 retry. Twilio's own error
+ * `message` is always the source of truth for *why* — logged verbatim,
+ * never paraphrased or guessed at. Retry-After drives backoff timing when
+ * present; a quota code like 63038 (daily limit) skips retries entirely
+ * since Twilio won't accept the message again until the quota resets,
+ * seconds later or not.
  */
 async function postTwilioMessage(label, to, payload) {
   const { accountSid, authToken } = config.twilio;
@@ -35,11 +43,13 @@ async function postTwilioMessage(label, to, payload) {
       return true;
     } catch (e) {
       const status = e.response?.status;
+      const code = e.response?.data?.code;
       const retryAfterHeader = e.response?.headers?.['retry-after'];
       const detail = e.response?.data?.message || e.message;
+      const retryable = status === 429 && !NON_RETRYABLE_429_CODES.has(code);
 
-      if (status === 429 && attempt < MAX_429_RETRIES) {
-        const waitMs = retryAfterHeader ? Number(retryAfterHeader) * 1000 : SANDBOX_MIN_INTERVAL_MS;
+      if (retryable && attempt < MAX_429_RETRIES) {
+        const waitMs = retryAfterHeader ? Number(retryAfterHeader) * 1000 : DEFAULT_BACKOFF_MS;
         safeLog(
           `⏳ Twilio ${label} send rate-limited (429) — retrying in ${(waitMs / 1000).toFixed(1)}s ` +
           `[attempt ${attempt + 1}/${MAX_429_RETRIES}]`
@@ -48,13 +58,13 @@ async function postTwilioMessage(label, to, payload) {
         continue;
       }
 
-      const waitHint =
-        status === 429
-          ? retryAfterHeader
-            ? ` (Twilio says retry after ${retryAfterHeader}s)`
-            : ' (no Retry-After given — Sandbox caps at 1 msg/3s; account-level throughput limits may also apply)'
-          : '';
-      safeLog(`❌ Twilio ${label} send failed: ${status || ''} ${detail}${waitHint}`);
+      // Retry-After presence/absence is a fact worth logging; the REASON
+      // for the 429 is whatever Twilio's own `detail` says above — never
+      // paraphrased or guessed here.
+      const retryHint = status === 429
+        ? retryAfterHeader ? ` (retry after ${retryAfterHeader}s)` : ' (no Retry-After given)'
+        : '';
+      safeLog(`❌ Twilio ${label} send failed: ${status || ''} ${code || ''} ${detail}${retryHint}`);
       return false;
     }
   }
