@@ -28,6 +28,18 @@ function rowFor(ev: DashboardEvent) {
       avatarLabel: ev.data.patient_name ? initialsOf(name) : anonymousAvatar,
     };
   }
+  if (ev.type === "booking.cancelled") {
+    return {
+      name: `Caller ${phone}`,
+      phone,
+      test: ev.data.test_type ?? null,
+      summary:
+        ev.data.summary ??
+        `Cancelled ${ev.data.date} at ${ev.data.time_slot} via ${ev.channel}.`,
+      avatar: "bg-amber-100 text-amber-700",
+      avatarLabel: anonymousAvatar,
+    };
+  }
   if (ev.type === "guardrail.redacted") {
     return {
       name: `Caller ${phone}`,
@@ -37,6 +49,35 @@ function rowFor(ev: DashboardEvent) {
         ev.data.summary ??
         "PHI intercepted and redacted by the compliance layer before storage.",
       avatar: "bg-red-100 text-red-700",
+      avatarLabel: anonymousAvatar,
+    };
+  }
+  if (ev.type === "emergency.detected") {
+    return {
+      name: `Caller ${phone}`,
+      phone,
+      test: null,
+      summary:
+        ev.data.summary ??
+        "Caller language suggested a possible medical emergency — scripted 911/ER redirect delivered.",
+      avatar: "bg-red-200 text-red-900",
+      avatarLabel: anonymousAvatar,
+    };
+  }
+  if (ev.type === "optout.received" || ev.type === "optout.restored") {
+    return {
+      name: `Caller ${phone}`,
+      phone,
+      test: null,
+      summary:
+        ev.data.summary ??
+        (ev.type === "optout.received"
+          ? "Caller opted out of messages via a STOP keyword."
+          : "Caller opted back in via a START keyword."),
+      avatar:
+        ev.type === "optout.received"
+          ? "bg-slate-100 text-slate-600"
+          : "bg-green-100 text-green-700",
       avatarLabel: anonymousAvatar,
     };
   }
@@ -107,7 +148,8 @@ export function LiveFeed({ limit }: { limit?: number }) {
         <div>
           {visible.map((ev) => {
             const row = rowFor(ev);
-            const isGuardrail = ev.type === "guardrail.redacted";
+            const isGuardrail =
+              ev.type === "guardrail.redacted" || ev.type === "emergency.detected";
             return (
               <div
                 key={ev.id}

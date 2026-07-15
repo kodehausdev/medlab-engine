@@ -7,7 +7,11 @@ export const ENGINE_URL =
 export type EventType =
   | "call.answered"
   | "booking.confirmed"
-  | "guardrail.redacted";
+  | "booking.cancelled"
+  | "guardrail.redacted"
+  | "emergency.detected"
+  | "optout.received"
+  | "optout.restored";
 
 export interface DashboardEvent {
   id: string; // "evt-7" — monotonic per engine process
@@ -33,6 +37,7 @@ export interface Counters {
   calls_answered: number;
   bookings_confirmed: number;
   guardrail_events: number;
+  emergency_events: number;
 }
 
 export interface EngineState {

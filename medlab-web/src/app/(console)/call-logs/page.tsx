@@ -8,7 +8,9 @@ import type { AuditRow } from "@/lib/supabase";
 const FILTERS = [
   { key: "all", label: "All events" },
   { key: "booking.confirmed", label: "Booked" },
+  { key: "booking.cancelled", label: "Cancelled" },
   { key: "guardrail.redacted", label: "Guardrail events" },
+  { key: "emergency.detected", label: "Emergency redirects" },
   { key: "call.answered", label: "Answered" },
 ] as const;
 
@@ -16,7 +18,11 @@ type FilterKey = (typeof FILTERS)[number]["key"];
 
 function badgeKind(row: AuditRow) {
   if (row.type === "booking.confirmed") return "booked" as const;
+  if (row.type === "booking.cancelled") return "cancelled" as const;
   if (row.type === "guardrail.redacted") return "guardrail" as const;
+  if (row.type === "emergency.detected") return "emergency" as const;
+  if (row.type === "optout.received") return "optedOut" as const;
+  if (row.type === "optout.restored") return "optedIn" as const;
   return "answered" as const;
 }
 
@@ -31,6 +37,15 @@ function describe(row: AuditRow): { patient: string; test: string; summary: stri
         `Booked ${row.data.date} at ${row.data.time_slot} via ${row.channel}.`,
     };
   }
+  if (row.type === "booking.cancelled") {
+    return {
+      patient: `Caller ${phone}`,
+      test: row.data.test_type ?? "—",
+      summary:
+        row.data.summary ??
+        `Cancelled ${row.data.date} at ${row.data.time_slot} via ${row.channel}.`,
+    };
+  }
   if (row.type === "guardrail.redacted") {
     return {
       patient: `Caller ${phone}`,
@@ -38,6 +53,26 @@ function describe(row: AuditRow): { patient: string; test: string; summary: stri
       summary:
         row.data.summary ??
         "PHI intercepted and redacted by the compliance layer before storage.",
+    };
+  }
+  if (row.type === "emergency.detected") {
+    return {
+      patient: `Caller ${phone}`,
+      test: "—",
+      summary:
+        row.data.summary ??
+        "Caller language suggested a possible medical emergency — scripted 911/ER redirect delivered.",
+    };
+  }
+  if (row.type === "optout.received" || row.type === "optout.restored") {
+    return {
+      patient: `Caller ${phone}`,
+      test: "—",
+      summary:
+        row.data.summary ??
+        (row.type === "optout.received"
+          ? "Caller opted out of messages via a STOP keyword."
+          : "Caller opted back in via a START keyword."),
     };
   }
   return {
@@ -111,7 +146,9 @@ export default function CallLogsPage() {
               <div
                 key={`${row.id}-${row.event_id}`}
                 className={`grid grid-cols-[130px_160px_80px_150px_170px_minmax(160px,1fr)] items-center gap-x-3 border-b border-slate-100 px-4.5 py-2.5 ${
-                  row.type === "guardrail.redacted" ? "bg-red-50/60" : ""
+                  row.type === "guardrail.redacted" || row.type === "emergency.detected"
+                    ? "bg-red-50/60"
+                    : ""
                 }`}
               >
                 <span className="font-mono text-[11.5px] text-slate-500">

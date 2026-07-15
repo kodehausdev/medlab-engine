@@ -31,12 +31,19 @@ const BAAS = [
 export default function CompliancePage() {
   const { rows, source } = useAuditTrail();
   const guardrails = rows.filter((r) => r.type === "guardrail.redacted");
+  const emergencies = rows.filter((r) => r.type === "emergency.detected");
 
   const kpis = [
     {
       label: "GUARDRAIL EVENTS",
       value: String(guardrails.length),
       sub: "all intercepted pre-storage",
+      cls: "text-red-700",
+    },
+    {
+      label: "EMERGENCY REDIRECTS",
+      value: String(emergencies.length),
+      sub: "scripted 911/ER, before the model",
       cls: "text-red-700",
     },
     {
