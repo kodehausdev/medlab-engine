@@ -1,6 +1,7 @@
 "use client";
 
-import { useState } from "react";
+import { Suspense, useState } from "react";
+import { useSearchParams } from "next/navigation";
 import { useAuditTrail } from "@/hooks/use-audit-trail";
 import { StatusBadge } from "@/components/console/status-badge";
 import type { AuditRow } from "@/lib/supabase";
@@ -102,11 +103,25 @@ function describe(row: AuditRow): { patient: string; test: string; summary: stri
 }
 
 export default function CallLogsPage() {
+  return (
+    <Suspense fallback={null}>
+      <CallLogsInner />
+    </Suspense>
+  );
+}
+
+function CallLogsInner() {
+  const searchParams = useSearchParams();
+  const requestedFilter = searchParams.get("filter");
+  const initialFilter: FilterKey = FILTERS.some((f) => f.key === requestedFilter)
+    ? (requestedFilter as FilterKey)
+    : "all";
+
   const [range, setRange] = useState<RangeKey>("all");
   const { rows, source, loading, hasMore, loadingMore, loadMore } = useAuditTrail({
     dateFrom: rangeToDateFrom(range),
   });
-  const [filter, setFilter] = useState<FilterKey>("all");
+  const [filter, setFilter] = useState<FilterKey>(initialFilter);
 
   const visible = rows.filter((r) => filter === "all" || r.type === filter);
 
