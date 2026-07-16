@@ -7,7 +7,7 @@
 // SSE feed so the pages still work — they just don't survive an engine
 // restart, and there's nothing to paginate beyond the in-memory ring buffer.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { supabase, type AuditRow } from "@/lib/supabase";
 import { eventSeq, type DashboardEvent } from "@/lib/engine";
 import { useDashboard } from "@/components/console/dashboard-provider";
@@ -36,6 +36,12 @@ export function useAuditTrail(opts?: { dateFrom?: string | null }): {
   loadMore: () => void;
 } {
   const dateFrom = opts?.dateFrom ?? null;
+  // Unique per hook instance — two callers with the same dateFrom (e.g. the
+  // Call Logs page and the command palette both open at once) must not
+  // share a Realtime channel name. Supabase's client keys channels by name
+  // and throws "cannot add postgres_changes callbacks... after subscribe()"
+  // if a second .on() lands on an already-subscribed channel of that name.
+  const instanceId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const { events } = useDashboard();
   // Keyed by dateFrom so a range change is visible as "reload" without a
   // synchronous setState at the top of the effect (same pattern as
@@ -63,7 +69,7 @@ export function useAuditTrail(opts?: { dateFrom?: string | null }): {
     });
 
     const channel = sb
-      .channel(`audit-inserts-${dateFrom ?? "all"}`)
+      .channel(`audit-inserts-${dateFrom ?? "all"}-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "audit_events" },
@@ -83,7 +89,7 @@ export function useAuditTrail(opts?: { dateFrom?: string | null }): {
       disposed = true;
       sb.removeChannel(channel);
     };
-  }, [dateFrom]);
+  }, [dateFrom, instanceId]);
 
   function loadMore() {
     const sb = supabase;

@@ -6,7 +6,7 @@
 // the engine's live event feed (booking.confirmed / booking.cancelled),
 // same resilience pattern as use-audit-trail.
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useId, useMemo, useState } from "react";
 import { supabase } from "@/lib/supabase";
 import { useDashboard } from "@/components/console/dashboard-provider";
 
@@ -27,6 +27,9 @@ export function useAppointments(date: string): {
   source: "supabase" | "engine";
   loading: boolean;
 } {
+  // Unique per hook instance — see use-audit-trail.ts for why two callers
+  // must never share a Realtime channel name.
+  const instanceId = useId().replace(/[^a-zA-Z0-9]/g, "");
   const { events } = useDashboard();
   // Keyed by date so a date change is visible as "no data for this date yet"
   // (loading) without a synchronous setState at the top of the effect.
@@ -49,7 +52,7 @@ export function useAppointments(date: string): {
       });
 
     const channel = sb
-      .channel(`appointments-${date}`)
+      .channel(`appointments-${date}-${instanceId}`)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "appointments", filter: `date=eq.${date}` },
@@ -80,7 +83,7 @@ export function useAppointments(date: string): {
       disposed = true;
       sb.removeChannel(channel);
     };
-  }, [date]);
+  }, [date, instanceId]);
 
   const engineRows = useMemo<Appointment[]>(() => {
     const byId = new Map<number, Appointment>();
