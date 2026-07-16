@@ -128,7 +128,7 @@ export default function CallLogsPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[19px] font-bold tracking-tight">Call Logs</h1>
-          <p className="mt-0.5 text-[12.5px] text-slate-500">
+          <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">
             {source === "supabase"
               ? "Durable audit trail · Supabase + Realtime"
               : "Live engine feed (in-memory) — connect Supabase for durable history"}
@@ -137,7 +137,7 @@ export default function CallLogsPage() {
         <button
           onClick={exportCsv}
           disabled={visible.length === 0}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
         >
           Export CSV
         </button>
@@ -151,8 +151,8 @@ export default function CallLogsPage() {
               onClick={() => setFilter(f.key)}
               className={
                 filter === f.key
-                  ? "rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-50"
-                  : "rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+                  ? "rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-50 dark:bg-indigo-500/80"
+                  : "rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
               }
             >
               {f.label}
@@ -163,7 +163,7 @@ export default function CallLogsPage() {
           value={range}
           onChange={(e) => setRange(e.target.value as RangeKey)}
           disabled={source === "engine"}
-          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 outline-none disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300"
           title={source === "engine" ? "Date range needs Supabase — the live feed only holds recent events" : undefined}
         >
           {RANGES.map((r) => (
@@ -174,13 +174,13 @@ export default function CallLogsPage() {
         </select>
       </div>
 
-      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
-        <div className="grid grid-cols-[130px_160px_80px_150px_170px_minmax(160px,1fr)] gap-x-3 border-b border-slate-200 bg-slate-50 px-4.5 py-2">
+      <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <div className="grid grid-cols-[130px_160px_80px_150px_170px_minmax(160px,1fr)] gap-x-3 border-b border-slate-200 bg-slate-50 px-4.5 py-2 dark:border-slate-700 dark:bg-slate-800/50">
           {["Time", "Patient", "Channel", "Requested Test", "Status", "AI Summary"].map(
             (h) => (
               <span
                 key={h}
-                className="text-[10px] font-bold uppercase tracking-wider text-slate-500"
+                className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
               >
                 {h}
               </span>
@@ -202,13 +202,13 @@ export default function CallLogsPage() {
             return (
               <div
                 key={`${row.id}-${row.event_id}`}
-                className={`grid grid-cols-[130px_160px_80px_150px_170px_minmax(160px,1fr)] items-center gap-x-3 border-b border-slate-100 px-4.5 py-2.5 ${
+                className={`grid grid-cols-[130px_160px_80px_150px_170px_minmax(160px,1fr)] items-center gap-x-3 border-b border-slate-100 px-4.5 py-2.5 dark:border-slate-800 ${
                   row.type === "guardrail.redacted" || row.type === "emergency.detected"
-                    ? "bg-red-50/60"
+                    ? "bg-red-50/60 dark:bg-red-500/5"
                     : ""
                 }`}
               >
-                <span className="font-mono text-[11.5px] text-slate-500">
+                <span className="font-mono text-[11.5px] text-slate-500 dark:text-slate-400">
                   {new Date(row.created_at).toLocaleString("en-US", {
                     month: "short",
                     day: "numeric",
@@ -220,26 +220,26 @@ export default function CallLogsPage() {
                   <div className="truncate text-[12.5px] font-semibold">
                     {d.patient}
                   </div>
-                  <div className="font-mono text-[10.5px] text-slate-400">
+                  <div className="font-mono text-[10.5px] text-slate-400 dark:text-slate-500">
                     {row.phone_tail ? `••• ${row.phone_tail}` : ""}
                   </div>
                 </div>
                 <span
                   className={
                     row.channel === "whatsapp"
-                      ? "justify-self-start rounded-md bg-green-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-green-700"
-                      : "justify-self-start rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-indigo-700"
+                      ? "justify-self-start rounded-md bg-green-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-green-700 dark:bg-green-500/10 dark:text-green-300"
+                      : "justify-self-start rounded-md bg-indigo-50 px-2 py-0.5 font-mono text-[10px] font-semibold text-indigo-700 dark:bg-indigo-500/10 dark:text-indigo-300"
                   }
                 >
                   {row.channel === "whatsapp" ? "WA" : "VOICE"}
                 </span>
-                <span className="truncate text-xs font-medium text-slate-700">
+                <span className="truncate text-xs font-medium text-slate-700 dark:text-slate-300">
                   {d.test}
                 </span>
                 <div>
                   <StatusBadge kind={badgeKind(row)} />
                 </div>
-                <span className="min-w-0 truncate text-[11.5px] text-slate-500">
+                <span className="min-w-0 truncate text-[11.5px] text-slate-500 dark:text-slate-400">
                   {d.summary}
                 </span>
               </div>
@@ -248,22 +248,22 @@ export default function CallLogsPage() {
         )}
 
         {hasMore ? (
-          <div className="border-b border-slate-100 px-4.5 py-2.5 text-center">
+          <div className="border-b border-slate-100 px-4.5 py-2.5 text-center dark:border-slate-800">
             <button
               onClick={loadMore}
               disabled={loadingMore}
-              className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+              className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             >
               {loadingMore ? "Loading…" : "Load more"}
             </button>
           </div>
         ) : null}
 
-        <div className="flex items-center justify-between bg-slate-50 px-4.5 py-2.5">
-          <span className="font-mono text-[11px] text-slate-500">
+        <div className="flex items-center justify-between bg-slate-50 px-4.5 py-2.5 dark:bg-slate-800/50">
+          <span className="font-mono text-[11px] text-slate-500 dark:text-slate-400">
             SHOWING {visible.length} EVENT{visible.length === 1 ? "" : "S"}
           </span>
-          <span className="font-mono text-[11px] text-slate-400">
+          <span className="font-mono text-[11px] text-slate-400 dark:text-slate-500">
             EVENT METADATA ONLY — NO CALLER CONTENT IS EVER LOGGED
           </span>
         </div>

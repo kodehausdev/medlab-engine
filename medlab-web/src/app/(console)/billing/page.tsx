@@ -5,11 +5,11 @@ import { useAuth } from "@/components/auth/auth-gate";
 import { authHeaders } from "@/lib/auth-headers";
 
 const STATUS_STYLE: Record<string, string> = {
-  active: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  trialing: "border-emerald-200 bg-emerald-50 text-emerald-700",
-  past_due: "border-amber-200 bg-amber-50 text-amber-700",
-  canceled: "border-red-200 bg-red-50 text-red-700",
-  incomplete: "border-slate-200 bg-slate-50 text-slate-500",
+  active: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+  trialing: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
+  past_due: "border-amber-200 bg-amber-50 text-amber-700 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300",
+  canceled: "border-red-200 bg-red-50 text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300",
+  incomplete: "border-slate-200 bg-slate-50 text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400",
 };
 
 const STATUS_LABEL: Record<string, string> = {
@@ -46,21 +46,21 @@ export default function BillingPage() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-[19px] font-bold tracking-tight">Billing</h1>
-        <p className="mt-0.5 text-[12.5px] text-slate-500">
+        <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">
           Plan, invoices, and payment method — managed through Stripe.
         </p>
       </div>
 
       {!user || !tenant ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 px-4.5 py-10 text-center text-sm text-slate-400">
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 px-4.5 py-10 text-center text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-900/60">
           Sign in to a provisioned lab account to manage billing.
         </div>
       ) : (
-        <div className="max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
+        <div className="max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-bold text-slate-900">MedLab AI Receptionist — Pro</div>
-              <div className="mt-0.5 font-mono text-xs text-slate-500">$297/mo per location</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-slate-100">MedLab AI Receptionist — Pro</div>
+              <div className="mt-0.5 font-mono text-xs text-slate-500 dark:text-slate-400">$297/mo per location</div>
             </div>
             <span
               className={`rounded-full border px-3 py-1 text-[11px] font-semibold whitespace-nowrap ${
@@ -72,7 +72,7 @@ export default function BillingPage() {
           </div>
 
           {error ? (
-            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+            <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
               {error}
             </div>
           ) : null}
@@ -84,7 +84,7 @@ export default function BillingPage() {
           >
             {busy ? "Opening…" : "Manage billing →"}
           </button>
-          <p className="mt-2.5 text-[11px] leading-relaxed text-slate-400">
+          <p className="mt-2.5 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
             Opens Stripe&apos;s billing portal — update your card, download
             past invoices, or view your next charge date.
           </p>

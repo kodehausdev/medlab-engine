@@ -20,13 +20,13 @@ export default function SettingsPage() {
     <div className="flex flex-col gap-4">
       <div>
         <h1 className="text-[19px] font-bold tracking-tight">Settings</h1>
-        <p className="mt-0.5 text-[12.5px] text-slate-500">
+        <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">
           Lab identity and the hours/capacity the AI receptionist schedules against.
         </p>
       </div>
 
       {!user || !tenant ? (
-        <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 px-4.5 py-10 text-center text-sm text-slate-400">
+        <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 px-4.5 py-10 text-center text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-900/60">
           Sign in to a provisioned lab account to edit settings.
         </div>
       ) : (
@@ -91,23 +91,23 @@ function SettingsForm({
 
   return (
     <>
-      <div className="max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm">
-        <label className="block text-xs font-semibold text-slate-600">
+      <div className="max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+        <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">
           Lab name
           <input
             value={labName}
             onChange={(e) => setLabName(e.target.value)}
             maxLength={120}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-indigo-500/20"
           />
         </label>
 
-        <label className="mt-4 block text-xs font-semibold text-slate-600">
+        <label className="mt-4 block text-xs font-semibold text-slate-600 dark:text-slate-400">
           Timezone
           <select
             value={timezone}
             onChange={(e) => setTimezone(e.target.value)}
-            className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-indigo-500/20"
           >
             {US_TIMEZONES.map((tz) => (
               <option key={tz.value} value={tz.value}>
@@ -118,12 +118,12 @@ function SettingsForm({
         </label>
 
         <div className="mt-4 grid grid-cols-2 gap-3">
-          <label className="block text-xs font-semibold text-slate-600">
+          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">
             Opens at
             <select
               value={openHour}
               onChange={(e) => setOpenHour(Number(e.target.value))}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-indigo-500/20"
             >
               {HOURS.map((h) => (
                 <option key={h} value={h}>
@@ -132,12 +132,12 @@ function SettingsForm({
               ))}
             </select>
           </label>
-          <label className="block text-xs font-semibold text-slate-600">
+          <label className="block text-xs font-semibold text-slate-600 dark:text-slate-400">
             Closes at
             <select
               value={closeHour}
               onChange={(e) => setCloseHour(Number(e.target.value))}
-              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+              className="mt-1.5 w-full rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-indigo-500/20"
             >
               {HOURS.map((h) => (
                 <option key={h} value={h}>
@@ -148,7 +148,7 @@ function SettingsForm({
           </label>
         </div>
 
-        <label className="mt-4 block text-xs font-semibold text-slate-600">
+        <label className="mt-4 block text-xs font-semibold text-slate-600 dark:text-slate-400">
           Chairs per slot
           <input
             type="number"
@@ -156,20 +156,20 @@ function SettingsForm({
             max={20}
             value={slotCapacity}
             onChange={(e) => setSlotCapacity(Number(e.target.value))}
-            className="mt-1.5 w-28 rounded-lg border border-slate-300 px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100"
+            className="mt-1.5 w-28 rounded-lg border border-slate-300 bg-white px-3 py-2 text-sm font-medium text-slate-900 outline-none focus:border-indigo-400 focus:ring-2 focus:ring-indigo-100 dark:border-slate-600 dark:bg-slate-800 dark:text-slate-100 dark:focus:ring-indigo-500/20"
           />
-          <span className="mt-1 block text-[11px] font-normal text-slate-400">
+          <span className="mt-1 block text-[11px] font-normal text-slate-400 dark:text-slate-500">
             How many patients the AI can book into the same 30-minute slot — drives the Scheduling grid directly.
           </span>
         </label>
 
         {error ? (
-          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700">
+          <div className="mt-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-xs font-medium text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300">
             {error}
           </div>
         ) : null}
         {saved && !dirty ? (
-          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700">
+          <div className="mt-4 rounded-lg border border-emerald-200 bg-emerald-50 px-3 py-2 text-xs font-medium text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300">
             Saved.
           </div>
         ) : null}
@@ -183,7 +183,7 @@ function SettingsForm({
         </button>
       </div>
 
-      <div className="mt-4 max-w-[560px] rounded-xl border border-slate-200 bg-slate-50 px-4.5 py-3.5 text-[11.5px] leading-relaxed text-slate-500">
+      <div className="mt-4 max-w-[560px] rounded-xl border border-slate-200 bg-slate-50 px-4.5 py-3.5 text-[11.5px] leading-relaxed text-slate-500 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400">
         Test-type catalog and notification preferences aren&apos;t configurable
         here yet — they&apos;re still hardcoded engine-side, not per-lab
         settings in the database.

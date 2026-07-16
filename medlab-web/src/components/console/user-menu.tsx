@@ -4,10 +4,12 @@ import Link from "next/link";
 import { useEffect, useRef, useState } from "react";
 import { useAuth } from "@/components/auth/auth-gate";
 import { useDashboard } from "./dashboard-provider";
+import { useTheme } from "./theme-provider";
 
 export function UserMenu() {
   const { user, signOut } = useAuth();
   const { tenant } = useDashboard();
+  const { theme, toggleTheme } = useTheme();
   const [open, setOpen] = useState(false);
   const rootRef = useRef<HTMLDivElement>(null);
 
@@ -50,9 +52,9 @@ export function UserMenu() {
       {open ? (
         <div
           role="menu"
-          className="absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1.5 text-slate-900 shadow-lg"
+          className="absolute top-full right-0 z-50 mt-2 w-56 overflow-hidden rounded-lg border border-slate-200 bg-white py-1.5 text-slate-900 shadow-lg dark:border-slate-700 dark:bg-slate-800 dark:text-slate-100"
         >
-          <div className="border-b border-slate-100 px-3.5 py-2.5">
+          <div className="border-b border-slate-100 px-3.5 py-2.5 dark:border-slate-700">
             <div className="truncate text-xs font-semibold">
               {user?.email ?? "Local dev"}
             </div>
@@ -64,7 +66,7 @@ export function UserMenu() {
             href="/settings"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="block px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             Settings
           </Link>
@@ -72,10 +74,29 @@ export function UserMenu() {
             href="/billing"
             role="menuitem"
             onClick={() => setOpen(false)}
-            className="block px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50"
+            className="block px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             Billing
           </Link>
+          <button
+            role="menuitemcheckbox"
+            aria-checked={theme === "dark"}
+            onClick={toggleTheme}
+            className="flex w-full items-center justify-between border-t border-slate-100 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
+          >
+            <span>Dark mode</span>
+            <span
+              className={`relative h-4.5 w-8 flex-none rounded-full transition-colors ${
+                theme === "dark" ? "bg-indigo-600" : "bg-slate-300"
+              }`}
+            >
+              <span
+                className={`absolute top-0.5 size-3.5 rounded-full bg-white transition-transform ${
+                  theme === "dark" ? "translate-x-4" : "translate-x-0.5"
+                }`}
+              />
+            </span>
+          </button>
           {user ? (
             <button
               role="menuitem"
@@ -83,7 +104,7 @@ export function UserMenu() {
                 setOpen(false);
                 void signOut();
               }}
-              className="block w-full border-t border-slate-100 px-3.5 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50"
+              className="block w-full border-t border-slate-100 px-3.5 py-2 text-left text-xs font-medium text-red-600 hover:bg-red-50 dark:border-slate-700 dark:text-red-400 dark:hover:bg-red-950/40"
             >
               Sign out
             </button>

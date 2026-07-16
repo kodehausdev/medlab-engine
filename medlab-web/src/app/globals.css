@@ -1,5 +1,11 @@
 @import "tailwindcss";
 
+/* Console dark mode is scoped to a `.dark` wrapper (ThemeProvider), not
+   <html> — so `dark:` classes key off that ancestor instead of the default
+   prefers-color-scheme media query. Login/signup (separate cream palette)
+   are outside that subtree and never see it. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 @theme inline {
   --font-sans: var(--font-plex-sans), system-ui, sans-serif;
   --font-mono: var(--font-plex-mono), ui-monospace, monospace;

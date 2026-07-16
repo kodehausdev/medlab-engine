@@ -88,7 +88,7 @@ export default function SchedulingPage() {
       <div className="flex flex-wrap items-end justify-between gap-3">
         <div>
           <h1 className="text-[19px] font-bold tracking-tight">Scheduling</h1>
-          <p className="mt-0.5 text-[12.5px] text-slate-500">
+          <p className="mt-0.5 text-[12.5px] text-slate-500 dark:text-slate-400">
             {tenant ? tenant.lab_name : "connecting to engine…"} · {capacity} chair
             {capacity === 1 ? "" : "s"} · slots the AI can offer, live
             {source === "engine" ? " · (live feed only — today may be incomplete after a restart)" : ""}
@@ -97,17 +97,17 @@ export default function SchedulingPage() {
         <div className="flex items-center gap-2">
           <button
             onClick={() => setDate((d) => addDays(d, -1))}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             aria-label="Previous day"
           >
             ◀
           </button>
-          <span className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-900">
+          <span className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-bold text-slate-900 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-100">
             {dateLabel(date)}
           </span>
           <button
             onClick={() => setDate((d) => addDays(d, 1))}
-            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+            className="rounded-lg border border-slate-300 bg-white px-2.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300 dark:hover:bg-slate-800"
             aria-label="Next day"
           >
             ▶
@@ -116,23 +116,23 @@ export default function SchedulingPage() {
       </div>
 
       <div className="flex flex-wrap items-start gap-4">
-        <div className="min-w-0 flex-1 basis-[560px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
+        <div className="min-w-0 flex-1 basis-[560px] overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
           <div
-            className="grid gap-x-2.5 border-b border-slate-200 bg-slate-50 px-4 py-2.5"
+            className="grid gap-x-2.5 border-b border-slate-200 bg-slate-50 px-4 py-2.5 dark:border-slate-700 dark:bg-slate-800/50"
             style={{ gridTemplateColumns: gridCols }}
           >
-            <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+            <span className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
               Time
             </span>
             {Array.from({ length: capacity }, (_, i) => (
               <span
                 key={i}
-                className="text-[10px] font-bold tracking-wider text-slate-500 uppercase"
+                className="text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400"
               >
                 Chair {i + 1}
               </span>
             ))}
-            <span className="text-right text-[10px] font-bold tracking-wider text-slate-500 uppercase">
+            <span className="text-right text-[10px] font-bold tracking-wider text-slate-500 uppercase dark:text-slate-400">
               AI Status
             </span>
           </div>
@@ -148,10 +148,10 @@ export default function SchedulingPage() {
               return (
                 <div
                   key={slot}
-                  className="grid items-center gap-x-2.5 border-b border-slate-100 px-4 py-2"
+                  className="grid items-center gap-x-2.5 border-b border-slate-100 px-4 py-2 dark:border-slate-800"
                   style={{ gridTemplateColumns: gridCols }}
                 >
-                  <span className="font-mono text-[11.5px] font-semibold text-slate-700">
+                  <span className="font-mono text-[11.5px] font-semibold text-slate-700 dark:text-slate-300">
                     {slot}
                   </span>
                   {Array.from({ length: capacity }, (_, i) => {
@@ -161,16 +161,16 @@ export default function SchedulingPage() {
                         key={i}
                         className={
                           appt
-                            ? "min-h-[34px] min-w-0 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5"
-                            : "min-h-[34px] min-w-0 rounded-lg border border-dashed border-slate-300 bg-white px-2.5 py-1.5"
+                            ? "min-h-[34px] min-w-0 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 dark:border-indigo-500/30 dark:bg-indigo-500/10"
+                            : "min-h-[34px] min-w-0 rounded-lg border border-dashed border-slate-300 bg-white px-2.5 py-1.5 dark:border-slate-700 dark:bg-slate-900"
                         }
                       >
                         {appt ? (
                           <>
-                            <div className="truncate text-[11px] font-semibold text-indigo-900">
+                            <div className="truncate text-[11px] font-semibold text-indigo-900 dark:text-indigo-200">
                               {appt.patient_name}
                             </div>
-                            <div className="truncate font-mono text-[9.5px] text-indigo-400">
+                            <div className="truncate font-mono text-[9.5px] text-indigo-400 dark:text-indigo-400/80">
                               {appt.test_type}
                             </div>
                           </>
@@ -181,10 +181,10 @@ export default function SchedulingPage() {
                   <span
                     className={
                       open === 0
-                        ? "justify-self-end rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-red-700"
+                        ? "justify-self-end rounded-full border border-red-200 bg-red-50 px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-red-700 dark:border-red-500/30 dark:bg-red-500/10 dark:text-red-300"
                         : open === capacity
-                          ? "justify-self-end rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-slate-500"
-                          : "justify-self-end rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-indigo-700"
+                          ? "justify-self-end rounded-full border border-slate-200 bg-slate-50 px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-slate-500 dark:border-slate-700 dark:bg-slate-800 dark:text-slate-400"
+                          : "justify-self-end rounded-full border border-indigo-200 bg-indigo-50 px-2.5 py-0.5 text-[10.5px] font-semibold whitespace-nowrap text-indigo-700 dark:border-indigo-500/30 dark:bg-indigo-500/10 dark:text-indigo-300"
                     }
                   >
                     {open === 0 ? "FULL" : open === capacity ? "OPEN" : `${open} OPEN`}
@@ -194,34 +194,34 @@ export default function SchedulingPage() {
             })
           )}
 
-          <div className="flex flex-wrap gap-3.5 bg-slate-50 px-4 py-2.5">
-            <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span className="size-2.5 rounded-[3px] border border-indigo-200 bg-indigo-50" />
+          <div className="flex flex-wrap gap-3.5 bg-slate-50 px-4 py-2.5 dark:bg-slate-800/50">
+            <span className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="size-2.5 rounded-[3px] border border-indigo-200 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/10" />
               Booked by AI
             </span>
-            <span className="flex items-center gap-1.5 text-[11px] text-slate-500">
-              <span className="size-2.5 rounded-[3px] border border-dashed border-slate-300 bg-white" />
+            <span className="flex items-center gap-1.5 text-[11px] text-slate-500 dark:text-slate-400">
+              <span className="size-2.5 rounded-[3px] border border-dashed border-slate-300 bg-white dark:border-slate-700 dark:bg-slate-900" />
               Open
             </span>
           </div>
         </div>
 
         <div className="flex w-full flex-col gap-3.5 md:w-[300px] md:flex-none">
-          <section className="rounded-xl border border-indigo-200 bg-indigo-50 px-4.5 py-4">
-            <h2 className="mb-2 text-[13px] font-bold text-indigo-900">
+          <section className="rounded-xl border border-indigo-200 bg-indigo-50 px-4.5 py-4 dark:border-indigo-500/30 dark:bg-indigo-500/10">
+            <h2 className="mb-2 text-[13px] font-bold text-indigo-900 dark:text-indigo-200">
               Rules the AI enforces
             </h2>
             {RULES.map((r) => (
-              <div key={r.t} className="border-t border-indigo-200/70 py-2 first:border-t-0">
-                <div className="text-xs font-bold text-indigo-900">{r.t}</div>
-                <div className="mt-0.5 text-[11.5px] leading-relaxed text-indigo-700">
+              <div key={r.t} className="border-t border-indigo-200/70 py-2 first:border-t-0 dark:border-indigo-500/20">
+                <div className="text-xs font-bold text-indigo-900 dark:text-indigo-200">{r.t}</div>
+                <div className="mt-0.5 text-[11.5px] leading-relaxed text-indigo-700 dark:text-indigo-300">
                   {r.d}
                 </div>
               </div>
             ))}
           </section>
           {status === "engine-unlinked" || status === "offline" ? (
-            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4.5 py-3.5 text-[11.5px] leading-relaxed text-amber-800">
+            <div className="rounded-xl border border-amber-200 bg-amber-50 px-4.5 py-3.5 text-[11.5px] leading-relaxed text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
               No live line connected yet — this grid will populate as soon as
               the AI receptionist is provisioned and starts taking calls.
             </div>
