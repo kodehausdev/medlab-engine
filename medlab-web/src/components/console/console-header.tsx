@@ -6,6 +6,7 @@ import { useDashboard } from "./dashboard-provider";
 import { UserMenu } from "./user-menu";
 import { CommandPalette } from "./command-palette";
 import { EmergencyAlerts } from "./emergency-alerts";
+import { HelpMenu } from "./help-menu";
 
 const TABS = [
   { href: "/overview", label: "Overview" },
@@ -113,6 +114,7 @@ export function ConsoleHeader() {
           <div className="flex flex-none items-center gap-2.5 md:ml-auto md:gap-3.5">
             <CommandPalette />
             <EmergencyAlerts />
+            <HelpMenu />
             <div
               className={`flex items-center gap-2 rounded-full border px-2.5 py-1 md:px-3 md:py-1.5 ${badge.box}`}
             >
