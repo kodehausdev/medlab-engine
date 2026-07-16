@@ -1,8 +1,10 @@
 "use client";
 
 import { useAuditTrail } from "@/hooks/use-audit-trail";
+import { useDashboard } from "@/components/console/dashboard-provider";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import type { AuditRow } from "@/lib/supabase";
+import { formatDateTime } from "@/lib/format-time";
 
 const CONTROLS = [
   {
@@ -31,6 +33,7 @@ const BAAS = [
 ];
 
 export default function CompliancePage() {
+  const { tenant } = useDashboard();
   const { rows, source } = useAuditTrail();
   const guardrails = rows.filter((r) => r.type === "guardrail.redacted");
   const emergencies = rows.filter((r) => r.type === "emergency.detected");
@@ -160,13 +163,8 @@ export default function CompliancePage() {
                       "Restricted content intercepted before execution — nothing stored."}
                   </div>
                 </div>
-                <span className="ml-auto font-mono text-[11px] whitespace-nowrap text-slate-400 dark:text-slate-500">
-                  {new Date(row.created_at).toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                <span className="ml-auto flex-none font-mono text-[11px] whitespace-nowrap text-slate-400 dark:text-slate-500">
+                  {formatDateTime(row.created_at, tenant?.timezone)}
                 </span>
               </div>
             ))

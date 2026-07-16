@@ -7,6 +7,7 @@ import { useDashboard } from "@/components/console/dashboard-provider";
 import { useAuth } from "@/components/auth/auth-gate";
 import { NumberIntake } from "@/components/console/number-intake";
 import { ProvisioningTracker } from "@/components/console/provisioning-tracker";
+import { formatLongDate } from "@/lib/format-time";
 
 const AVG_MINUTES_SAVED_PER_CALL = 4.2;
 
@@ -48,12 +49,9 @@ export default function OverviewPage() {
   const provisioningActive = onboardingState === "provisioning_active";
 
   const hoursSaved = (counters.calls_answered * AVG_MINUTES_SAVED_PER_CALL) / 60;
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  // The lab's own "today", not the viewer's — matters near midnight for
+  // anyone checking the console from a different timezone than the lab.
+  const today = formatLongDate(new Date(), tenant?.timezone);
 
   return (
     <div className="flex flex-col gap-5">

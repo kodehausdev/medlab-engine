@@ -4,8 +4,10 @@ import { Suspense, useState } from "react";
 import { useSearchParams } from "next/navigation";
 import { useAuditTrail } from "@/hooks/use-audit-trail";
 import { StatusBadge } from "@/components/console/status-badge";
+import { useDashboard } from "@/components/console/dashboard-provider";
 import type { AuditRow } from "@/lib/supabase";
 import { toCsv, downloadCsv } from "@/lib/csv";
+import { formatDateTime } from "@/lib/format-time";
 
 const FILTERS = [
   { key: "all", label: "All events" },
@@ -117,6 +119,7 @@ function CallLogsInner() {
     ? (requestedFilter as FilterKey)
     : "all";
 
+  const { tenant } = useDashboard();
   const [range, setRange] = useState<RangeKey>("all");
   const { rows, source, loading, hasMore, loadingMore, loadMore } = useAuditTrail({
     dateFrom: rangeToDateFrom(range),
@@ -190,7 +193,7 @@ function CallLogsInner() {
       </div>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
-        <div className="grid grid-cols-[130px_160px_80px_150px_170px_minmax(160px,1fr)] gap-x-3 border-b border-slate-200 bg-slate-50 px-4.5 py-2 dark:border-slate-700 dark:bg-slate-800/50">
+        <div className="grid grid-cols-[168px_160px_80px_150px_170px_minmax(160px,1fr)] gap-x-3 border-b border-slate-200 bg-slate-50 px-4.5 py-2 dark:border-slate-700 dark:bg-slate-800/50">
           {["Time", "Patient", "Channel", "Requested Test", "Status", "AI Summary"].map(
             (h) => (
               <span
@@ -217,19 +220,14 @@ function CallLogsInner() {
             return (
               <div
                 key={`${row.id}-${row.event_id}`}
-                className={`grid grid-cols-[130px_160px_80px_150px_170px_minmax(160px,1fr)] items-center gap-x-3 border-b border-slate-100 px-4.5 py-2.5 dark:border-slate-800 ${
+                className={`grid grid-cols-[168px_160px_80px_150px_170px_minmax(160px,1fr)] items-center gap-x-3 border-b border-slate-100 px-4.5 py-2.5 dark:border-slate-800 ${
                   row.type === "guardrail.redacted" || row.type === "emergency.detected"
                     ? "bg-red-50/60 dark:bg-red-500/5"
                     : ""
                 }`}
               >
                 <span className="font-mono text-[11.5px] text-slate-500 dark:text-slate-400">
-                  {new Date(row.created_at).toLocaleString("en-US", {
-                    month: "short",
-                    day: "numeric",
-                    hour: "numeric",
-                    minute: "2-digit",
-                  })}
+                  {formatDateTime(row.created_at, tenant?.timezone)}
                 </span>
                 <div className="min-w-0">
                   <div className="truncate text-[12.5px] font-semibold">

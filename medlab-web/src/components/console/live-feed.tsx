@@ -4,13 +4,7 @@ import Link from "next/link";
 import type { DashboardEvent } from "@/lib/engine";
 import { StatusBadge, kindForEvent } from "./status-badge";
 import { useDashboard } from "./dashboard-provider";
-
-function timeOf(ev: DashboardEvent) {
-  return new Date(ev.ts).toLocaleTimeString("en-US", {
-    hour: "numeric",
-    minute: "2-digit",
-  });
-}
+import { formatTime } from "@/lib/format-time";
 
 function rowFor(ev: DashboardEvent) {
   const phone = ev.phone_tail ? `••• ${ev.phone_tail}` : "unknown";
@@ -106,7 +100,7 @@ const EMPTY_TEXT: Record<string, string> = {
 };
 
 export function LiveFeed({ limit }: { limit?: number }) {
-  const { status, events } = useDashboard();
+  const { status, events, tenant } = useDashboard();
   const visible = limit ? events.slice(0, limit) : events;
 
   return (
@@ -180,7 +174,7 @@ export function LiveFeed({ limit }: { limit?: number }) {
                 <div className="flex flex-none flex-col items-end gap-1">
                   <StatusBadge kind={kindForEvent(ev)} />
                   <span className="font-mono text-[10.5px] text-slate-400 dark:text-slate-500">
-                    {row.phone} · {timeOf(ev)} ·{" "}
+                    {row.phone} · {formatTime(ev.ts, tenant?.timezone)} ·{" "}
                     {ev.channel === "whatsapp" ? "WA" : ev.channel.toUpperCase()}
                   </span>
                 </div>
