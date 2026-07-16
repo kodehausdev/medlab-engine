@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useDashboard } from "./dashboard-provider";
 import { UserMenu } from "./user-menu";
+import { CommandPalette } from "./command-palette";
 
 const TABS = [
   { href: "/overview", label: "Overview" },
@@ -108,6 +109,7 @@ export function ConsoleHeader() {
           <NavLinks className="hidden md:ml-5 md:flex md:gap-0.5" />
 
           <div className="flex flex-none items-center gap-2.5 md:ml-auto md:gap-3.5">
+            <CommandPalette />
             <div
               className={`flex items-center gap-2 rounded-full border px-2.5 py-1 md:px-3 md:py-1.5 ${badge.box}`}
             >
