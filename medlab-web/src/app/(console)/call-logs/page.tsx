@@ -17,6 +17,24 @@ const FILTERS = [
 
 type FilterKey = (typeof FILTERS)[number]["key"];
 
+const RANGES = [
+  { key: "all", label: "All time", days: null },
+  { key: "today", label: "Today", days: 0 },
+  { key: "7d", label: "Last 7 days", days: 7 },
+  { key: "30d", label: "Last 30 days", days: 30 },
+] as const;
+
+type RangeKey = (typeof RANGES)[number]["key"];
+
+function rangeToDateFrom(key: RangeKey): string | null {
+  const range = RANGES.find((r) => r.key === key);
+  if (!range || range.days === null) return null;
+  const d = new Date();
+  d.setHours(0, 0, 0, 0);
+  d.setDate(d.getDate() - range.days);
+  return d.toISOString();
+}
+
 function badgeKind(row: AuditRow) {
   if (row.type === "booking.confirmed") return "booked" as const;
   if (row.type === "booking.cancelled") return "cancelled" as const;
@@ -84,7 +102,10 @@ function describe(row: AuditRow): { patient: string; test: string; summary: stri
 }
 
 export default function CallLogsPage() {
-  const { rows, source, loading } = useAuditTrail();
+  const [range, setRange] = useState<RangeKey>("all");
+  const { rows, source, loading, hasMore, loadingMore, loadMore } = useAuditTrail({
+    dateFrom: rangeToDateFrom(range),
+  });
   const [filter, setFilter] = useState<FilterKey>("all");
 
   const visible = rows.filter((r) => filter === "all" || r.type === filter);
@@ -122,20 +143,35 @@ export default function CallLogsPage() {
         </button>
       </div>
 
-      <div className="flex flex-wrap gap-2">
-        {FILTERS.map((f) => (
-          <button
-            key={f.key}
-            onClick={() => setFilter(f.key)}
-            className={
-              filter === f.key
-                ? "rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-50"
-                : "rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
-            }
-          >
-            {f.label}
-          </button>
-        ))}
+      <div className="flex flex-wrap items-center justify-between gap-3">
+        <div className="flex flex-wrap gap-2">
+          {FILTERS.map((f) => (
+            <button
+              key={f.key}
+              onClick={() => setFilter(f.key)}
+              className={
+                filter === f.key
+                  ? "rounded-full bg-slate-900 px-3.5 py-1.5 text-xs font-semibold text-slate-50"
+                  : "rounded-full border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50"
+              }
+            >
+              {f.label}
+            </button>
+          ))}
+        </div>
+        <select
+          value={range}
+          onChange={(e) => setRange(e.target.value as RangeKey)}
+          disabled={source === "engine"}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 outline-none disabled:cursor-not-allowed disabled:opacity-50"
+          title={source === "engine" ? "Date range needs Supabase — the live feed only holds recent events" : undefined}
+        >
+          {RANGES.map((r) => (
+            <option key={r.key} value={r.key}>
+              {r.label}
+            </option>
+          ))}
+        </select>
       </div>
 
       <section className="overflow-hidden rounded-xl border border-slate-200 bg-white shadow-sm">
@@ -210,6 +246,18 @@ export default function CallLogsPage() {
             );
           })
         )}
+
+        {hasMore ? (
+          <div className="border-b border-slate-100 px-4.5 py-2.5 text-center">
+            <button
+              onClick={loadMore}
+              disabled={loadingMore}
+              className="rounded-lg border border-slate-300 bg-white px-3.5 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              {loadingMore ? "Loading…" : "Load more"}
+            </button>
+          </div>
+        ) : null}
 
         <div className="flex items-center justify-between bg-slate-50 px-4.5 py-2.5">
           <span className="font-mono text-[11px] text-slate-500">

@@ -1,17 +1,18 @@
 "use client";
 
 // Durable audit rows for Call Logs / Compliance.
-// Source of truth is Supabase (initial page + Realtime INSERTs). When
-// Supabase env isn't configured (local dev before keys exist), the hook
-// degrades to mirroring the engine's live SSE feed so the pages still work —
-// they just don't survive an engine restart.
+// Source of truth is Supabase (initial page + Realtime INSERTs, cursor
+// pagination via "Load more"). When Supabase env isn't configured (local
+// dev before keys exist), the hook degrades to mirroring the engine's live
+// SSE feed so the pages still work — they just don't survive an engine
+// restart, and there's nothing to paginate beyond the in-memory ring buffer.
 
 import { useEffect, useMemo, useState } from "react";
 import { supabase, type AuditRow } from "@/lib/supabase";
 import { eventSeq, type DashboardEvent } from "@/lib/engine";
 import { useDashboard } from "@/components/console/dashboard-provider";
 
-const PAGE_SIZE = 200;
+const PAGE_SIZE = 100;
 
 function rowFromEvent(ev: DashboardEvent): AuditRow {
   return {
@@ -26,42 +27,53 @@ function rowFromEvent(ev: DashboardEvent): AuditRow {
   };
 }
 
-export function useAuditTrail(): {
+export function useAuditTrail(opts?: { dateFrom?: string | null }): {
   rows: AuditRow[];
   source: "supabase" | "engine";
   loading: boolean;
+  hasMore: boolean;
+  loadingMore: boolean;
+  loadMore: () => void;
 } {
+  const dateFrom = opts?.dateFrom ?? null;
   const { events } = useDashboard();
-  const [dbRows, setDbRows] = useState<AuditRow[] | null>(null);
-  const [loading, setLoading] = useState(Boolean(supabase));
+  // Keyed by dateFrom so a range change is visible as "reload" without a
+  // synchronous setState at the top of the effect (same pattern as
+  // use-appointments.ts).
+  const [state, setState] = useState<{ dateFrom: string | null; rows: AuditRow[]; hasMore: boolean } | null>(
+    null
+  );
+  const [loadingMore, setLoadingMore] = useState(false);
+  const fresh = state?.dateFrom === dateFrom;
+  const loading = Boolean(supabase) && !fresh;
 
   useEffect(() => {
     const sb = supabase;
     if (!sb) return;
     let disposed = false;
 
-    sb
-      .from("audit_events")
-      .select("*")
-      .order("created_at", { ascending: false })
-      .limit(PAGE_SIZE)
-      .then(({ data, error }) => {
-        if (disposed) return;
-        setLoading(false);
-        if (!error && data) setDbRows(data as AuditRow[]);
-      });
+    let query = sb.from("audit_events").select("*").order("created_at", { ascending: false }).limit(PAGE_SIZE);
+    if (dateFrom) query = query.gte("created_at", dateFrom);
+
+    query.then(({ data, error }) => {
+      if (disposed) return;
+      if (!error && data) {
+        setState({ dateFrom, rows: data as AuditRow[], hasMore: data.length === PAGE_SIZE });
+      }
+    });
 
     const channel = sb
-      .channel("audit-inserts")
+      .channel(`audit-inserts-${dateFrom ?? "all"}`)
       .on(
         "postgres_changes",
         { event: "INSERT", schema: "public", table: "audit_events" },
         (payload) => {
           const row = payload.new as AuditRow;
-          setDbRows((prev) => {
-            if (!prev) return [row];
-            if (prev.some((r) => r.id === row.id)) return prev;
-            return [row, ...prev].slice(0, PAGE_SIZE);
+          if (dateFrom && row.created_at < dateFrom) return;
+          setState((prev) => {
+            if (!prev || prev.dateFrom !== dateFrom) return prev;
+            if (prev.rows.some((r) => r.id === row.id)) return prev;
+            return { ...prev, rows: [row, ...prev.rows] };
           });
         }
       )
@@ -71,12 +83,55 @@ export function useAuditTrail(): {
       disposed = true;
       sb.removeChannel(channel);
     };
-  }, []);
+  }, [dateFrom]);
 
-  const engineRows = useMemo(() => events.map(rowFromEvent), [events]);
+  function loadMore() {
+    const sb = supabase;
+    if (!sb || !state || state.dateFrom !== dateFrom || !state.hasMore || loadingMore) return;
+    const cursor = state.rows[state.rows.length - 1]?.created_at;
+    if (!cursor) return;
+    setLoadingMore(true);
+    let query = sb
+      .from("audit_events")
+      .select("*")
+      .order("created_at", { ascending: false })
+      .lt("created_at", cursor)
+      .limit(PAGE_SIZE);
+    if (dateFrom) query = query.gte("created_at", dateFrom);
+
+    query.then(({ data, error }) => {
+      setLoadingMore(false);
+      if (error || !data) return;
+      setState((prev) => {
+        if (!prev || prev.dateFrom !== dateFrom) return prev;
+        const existing = new Set(prev.rows.map((r) => r.id));
+        const appended = (data as AuditRow[]).filter((r) => !existing.has(r.id));
+        return { ...prev, rows: [...prev.rows, ...appended], hasMore: data.length === PAGE_SIZE };
+      });
+    });
+  }
+
+  const engineRows = useMemo(() => {
+    const mapped = events.map(rowFromEvent);
+    return dateFrom ? mapped.filter((r) => r.created_at >= dateFrom) : mapped;
+  }, [events, dateFrom]);
 
   if (supabase) {
-    return { rows: dbRows ?? [], source: "supabase", loading };
+    return {
+      rows: fresh ? state.rows : [],
+      source: "supabase",
+      loading,
+      hasMore: fresh ? state.hasMore : false,
+      loadingMore,
+      loadMore,
+    };
   }
-  return { rows: engineRows, source: "engine", loading: false };
+  return {
+    rows: engineRows,
+    source: "engine",
+    loading: false,
+    hasMore: false,
+    loadingMore: false,
+    loadMore: () => {},
+  };
 }
