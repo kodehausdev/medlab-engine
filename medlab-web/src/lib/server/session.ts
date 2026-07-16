@@ -16,8 +16,14 @@ export interface CallerTenant {
   whatsapp_number: string | null;
 }
 
+export interface Caller {
+  userId: string;
+  email: string;
+  role: string; // 'owner' | 'staff'
+}
+
 export type CallerResult =
-  | { ok: true; tenant: CallerTenant }
+  | { ok: true; tenant: CallerTenant; caller: Caller }
   | { ok: false; status: number; error: string };
 
 export async function getCallerTenant(req: Request): Promise<CallerResult> {
@@ -32,7 +38,7 @@ export async function getCallerTenant(req: Request): Promise<CallerResult> {
 
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("tenant_id")
+    .select("tenant_id, role")
     .eq("user_id", userData.user.id)
     .single();
   if (profileError || !profile)
@@ -48,5 +54,9 @@ export async function getCallerTenant(req: Request): Promise<CallerResult> {
   if (tenantError || !tenant)
     return { ok: false, status: 404, error: "Tenant not found." };
 
-  return { ok: true, tenant: tenant as CallerTenant };
+  return {
+    ok: true,
+    tenant: tenant as CallerTenant,
+    caller: { userId: userData.user.id, email: userData.user.email ?? "", role: profile.role },
+  };
 }
