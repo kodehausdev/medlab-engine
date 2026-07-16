@@ -10,6 +10,7 @@ const TABS = [
   { href: "/call-logs", label: "Call Logs" },
   { href: "/scheduling", label: "Scheduling" },
   { href: "/compliance", label: "Compliance" },
+  { href: "/settings", label: "Settings" },
 ];
 
 function FlaskLogo() {

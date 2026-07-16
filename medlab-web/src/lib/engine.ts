@@ -52,6 +52,7 @@ export interface EngineState {
     onboarding_state?: string;
     whatsapp_number?: string | null;
     subscription_status?: string;
+    timezone?: string;
   };
   counters: Counters;
   recent: DashboardEvent[];
