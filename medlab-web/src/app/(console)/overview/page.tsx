@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { KpiCard } from "@/components/console/kpi-card";
 import { LiveFeed } from "@/components/console/live-feed";
 import { useDashboard } from "@/components/console/dashboard-provider";
@@ -68,9 +69,12 @@ export default function OverviewPage() {
               : " · connecting to engine…"}
           </p>
         </div>
-        <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
+        <Link
+          href="/billing"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50"
+        >
           Plan: Pro — $297/mo
-        </span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3.5">
