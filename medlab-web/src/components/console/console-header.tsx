@@ -2,8 +2,8 @@
 
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { useAuth } from "@/components/auth/auth-gate";
 import { useDashboard } from "./dashboard-provider";
+import { UserMenu } from "./user-menu";
 
 const TABS = [
   { href: "/overview", label: "Overview" },
@@ -87,15 +87,7 @@ function NavLinks({ className, linkClassName }: { className: string; linkClassNa
 
 export function ConsoleHeader() {
   const { status, tenant } = useDashboard();
-  const { user, signOut } = useAuth();
   const badge = BADGE[status];
-  const initials = (user?.email ?? "dev")
-    .split("@")[0]
-    .split(/[._-]/)
-    .map((p) => p[0])
-    .join("")
-    .slice(0, 2)
-    .toUpperCase();
 
   return (
     <header className="sticky top-0 z-40 bg-slate-900 text-slate-50 shadow">
@@ -126,20 +118,7 @@ export function ConsoleHeader() {
                 {badge.label}
               </span>
             </div>
-            <div
-              className="grid size-8 flex-none place-items-center rounded-full bg-slate-700 text-xs font-bold text-slate-300"
-              title={user?.email ?? "local dev (no auth)"}
-            >
-              {initials}
-            </div>
-            {user ? (
-              <button
-                onClick={() => void signOut()}
-                className="flex-none whitespace-nowrap text-xs font-semibold text-slate-400 hover:text-slate-200"
-              >
-                Sign out
-              </button>
-            ) : null}
+            <UserMenu />
           </div>
         </div>
 
