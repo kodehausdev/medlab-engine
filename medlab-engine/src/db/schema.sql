@@ -87,7 +87,13 @@ create table if not exists profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   tenant_id text not null references tenants(id),
   role text not null default 'staff',     -- 'owner' | 'staff'
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  -- Stamped lazily on first successful authenticated resolution, not by
+  -- Supabase's auth.users timestamps — those flip on any clicked
+  -- magic-link (invite, recovery, even a broken one), whether or not a
+  -- password was ever actually set. See migrations/0008 for the same
+  -- reasoning applied to mission-control's operators table first.
+  joined_at timestamptz
 );
 
 create or replace function public.user_tenant_id()

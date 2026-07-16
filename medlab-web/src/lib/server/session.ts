@@ -38,11 +38,23 @@ export async function getCallerTenant(req: Request): Promise<CallerResult> {
 
   const { data: profile, error: profileError } = await admin
     .from("profiles")
-    .select("tenant_id, role")
+    .select("tenant_id, role, joined_at")
     .eq("user_id", userData.user.id)
     .single();
   if (profileError || !profile)
     return { ok: false, status: 403, error: "No tenant linked to this account." };
+
+  // The only moment we can be certain someone has working credentials is a
+  // successful authenticated resolution right here — see migrations/0008
+  // for why auth.users' own timestamps can't be trusted for this. Stamp it
+  // lazily on first real use rather than at invite time.
+  if (!profile.joined_at) {
+    await admin
+      .from("profiles")
+      .update({ joined_at: new Date().toISOString() })
+      .eq("user_id", userData.user.id)
+      .is("joined_at", null);
+  }
 
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")

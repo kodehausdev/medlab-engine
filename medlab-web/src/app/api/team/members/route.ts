@@ -16,7 +16,7 @@ export async function GET(req: Request) {
   const admin = supabaseAdmin();
   const { data: profiles, error } = await admin
     .from("profiles")
-    .select("user_id, role, created_at")
+    .select("user_id, role, created_at, joined_at")
     .eq("tenant_id", result.tenant.id)
     .order("created_at", { ascending: true });
   if (error)
@@ -30,7 +30,11 @@ export async function GET(req: Request) {
         role: p.role,
         created_at: p.created_at,
         email: data?.user?.email ?? "(unknown)",
-        invite_pending: !data?.user?.email_confirmed_at,
+        // Not auth.users' email_confirmed_at — that flips on any clicked
+        // magic-link (invite, recovery, even a broken one), whether or not
+        // a password was ever set. joined_at is stamped lazily, only on a
+        // real authenticated resolution (see session.ts).
+        invite_pending: !p.joined_at,
       };
     })
   );
