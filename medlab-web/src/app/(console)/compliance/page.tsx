@@ -1,6 +1,8 @@
 "use client";
 
 import { useAuditTrail } from "@/hooks/use-audit-trail";
+import { toCsv, downloadCsv } from "@/lib/csv";
+import type { AuditRow } from "@/lib/supabase";
 
 const CONTROLS = [
   {
@@ -32,6 +34,18 @@ export default function CompliancePage() {
   const { rows, source } = useAuditTrail();
   const guardrails = rows.filter((r) => r.type === "guardrail.redacted");
   const emergencies = rows.filter((r) => r.type === "emergency.detected");
+
+  function exportGuardrailsCsv() {
+    const csv = toCsv(guardrails, [
+      { header: "Time", get: (r: AuditRow) => new Date(r.created_at).toISOString() },
+      { header: "Event ID", get: (r: AuditRow) => r.event_id ?? "" },
+      { header: "Tool", get: (r: AuditRow) => r.data.tool ?? "" },
+      { header: "Channel", get: (r: AuditRow) => r.channel },
+      { header: "Phone tail", get: (r: AuditRow) => r.phone_tail ?? "" },
+      { header: "Summary", get: (r: AuditRow) => r.data.summary ?? "" },
+    ]);
+    downloadCsv(`guardrail-audit-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
 
   const kpis = [
     {
@@ -108,9 +122,18 @@ export default function CompliancePage() {
               <path d="M12 2l8 3v6c0 5-3.4 9.4-8 11-4.6-1.6-8-6-8-11V5l8-3z" />
             </svg>
             <h2 className="text-[13.5px] font-bold">Guardrail audit trail</h2>
-            <span className="ml-auto font-mono text-[10px] text-slate-400">
-              EVENT METADATA ONLY — NO CALLER CONTENT
-            </span>
+            <div className="ml-auto flex items-center gap-3">
+              <span className="font-mono text-[10px] text-slate-400">
+                EVENT METADATA ONLY — NO CALLER CONTENT
+              </span>
+              <button
+                onClick={exportGuardrailsCsv}
+                disabled={guardrails.length === 0}
+                className="rounded-lg border border-slate-300 bg-white px-2.5 py-1 text-[11px] font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                Export CSV
+              </button>
+            </div>
           </div>
 
           {guardrails.length === 0 ? (

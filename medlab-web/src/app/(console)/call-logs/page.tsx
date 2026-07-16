@@ -4,6 +4,7 @@ import { useState } from "react";
 import { useAuditTrail } from "@/hooks/use-audit-trail";
 import { StatusBadge } from "@/components/console/status-badge";
 import type { AuditRow } from "@/lib/supabase";
+import { toCsv, downloadCsv } from "@/lib/csv";
 
 const FILTERS = [
   { key: "all", label: "All events" },
@@ -88,6 +89,19 @@ export default function CallLogsPage() {
 
   const visible = rows.filter((r) => filter === "all" || r.type === filter);
 
+  function exportCsv() {
+    const csv = toCsv(visible, [
+      { header: "Time", get: (r) => new Date(r.created_at).toISOString() },
+      { header: "Patient", get: (r) => describe(r).patient },
+      { header: "Phone tail", get: (r) => r.phone_tail ?? "" },
+      { header: "Channel", get: (r) => r.channel },
+      { header: "Requested test", get: (r) => describe(r).test },
+      { header: "Type", get: (r) => r.type },
+      { header: "AI summary", get: (r) => describe(r).summary },
+    ]);
+    downloadCsv(`call-logs-${filter}-${new Date().toISOString().slice(0, 10)}.csv`, csv);
+  }
+
   return (
     <div className="flex flex-col gap-4">
       <div className="flex flex-wrap items-end justify-between gap-3">
@@ -99,6 +113,13 @@ export default function CallLogsPage() {
               : "Live engine feed (in-memory) — connect Supabase for durable history"}
           </p>
         </div>
+        <button
+          onClick={exportCsv}
+          disabled={visible.length === 0}
+          className="rounded-lg border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-600 hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          Export CSV
+        </button>
       </div>
 
       <div className="flex flex-wrap gap-2">
