@@ -5,6 +5,7 @@ import { useSearchParams } from "next/navigation";
 import { useAuditTrail } from "@/hooks/use-audit-trail";
 import { StatusBadge } from "@/components/console/status-badge";
 import { useDashboard } from "@/components/console/dashboard-provider";
+import { EmptyState } from "@/components/console/empty-state";
 import type { AuditRow } from "@/lib/supabase";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import { formatDateTime } from "@/lib/format-time";
@@ -211,9 +212,14 @@ function CallLogsInner() {
             Loading audit trail…
           </div>
         ) : visible.length === 0 ? (
-          <div className="px-4.5 py-12 text-center text-sm text-slate-400">
-            No events match this filter yet.
-          </div>
+          <EmptyState
+            title="No events match this filter yet"
+            description={
+              filter === "all"
+                ? "Call activity will show up here as the AI receptionist takes calls."
+                : "Try a different filter or a wider date range."
+            }
+          />
         ) : (
           visible.map((row) => {
             const d = describe(row);

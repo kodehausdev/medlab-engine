@@ -4,6 +4,7 @@ import Link from "next/link";
 import type { DashboardEvent } from "@/lib/engine";
 import { StatusBadge, kindForEvent } from "./status-badge";
 import { useDashboard } from "./dashboard-provider";
+import { EmptyState } from "./empty-state";
 import { formatTime } from "@/lib/format-time";
 
 function rowFor(ev: DashboardEvent) {
@@ -91,12 +92,21 @@ function initialsOf(name: string) {
   return name.slice(0, 2).toUpperCase();
 }
 
-const EMPTY_TEXT: Record<string, string> = {
-  "engine-live": "Waiting for the first call — events appear here in real time.",
-  "engine-unlinked":
-    "No events yet. Your phone line isn't provisioned on the engine — history from the audit trail will appear here as calls happen.",
-  offline: "Engine offline. Start medlab-engine and this feed reconnects automatically.",
-  connecting: "Connecting…",
+const EMPTY_COPY: Record<string, { title: string; description?: string }> = {
+  "engine-live": {
+    title: "Waiting for the first call",
+    description: "Events appear here in real time as calls come in.",
+  },
+  "engine-unlinked": {
+    title: "No events yet",
+    description:
+      "Your phone line isn't provisioned on the engine — history from the audit trail will appear here as calls happen.",
+  },
+  offline: {
+    title: "Engine offline",
+    description: "Start medlab-engine and this feed reconnects automatically.",
+  },
+  connecting: { title: "Connecting…" },
 };
 
 export function LiveFeed({ limit }: { limit?: number }) {
@@ -135,9 +145,7 @@ export function LiveFeed({ limit }: { limit?: number }) {
       </div>
 
       {visible.length === 0 ? (
-        <div className="px-4.5 py-10 text-center text-sm text-slate-400">
-          {EMPTY_TEXT[status]}
-        </div>
+        <EmptyState title={EMPTY_COPY[status].title} description={EMPTY_COPY[status].description} />
       ) : (
         <div>
           {visible.map((ev) => {

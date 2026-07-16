@@ -2,6 +2,7 @@
 
 import { useAuditTrail } from "@/hooks/use-audit-trail";
 import { useDashboard } from "@/components/console/dashboard-provider";
+import { EmptyState } from "@/components/console/empty-state";
 import { toCsv, downloadCsv } from "@/lib/csv";
 import type { AuditRow } from "@/lib/supabase";
 import { formatDateTime } from "@/lib/format-time";
@@ -140,10 +141,10 @@ export default function CompliancePage() {
           </div>
 
           {guardrails.length === 0 ? (
-            <div className="px-4.5 py-10 text-center text-sm text-slate-400">
-              No guardrail intercepts recorded. Prompt-level deflections are not
-              yet surfaced here.
-            </div>
+            <EmptyState
+              title="No guardrail intercepts recorded"
+              description="Prompt-level deflections aren't surfaced here yet."
+            />
           ) : (
             guardrails.map((row) => (
               <div

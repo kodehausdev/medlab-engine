@@ -47,6 +47,20 @@
   }
 }
 
+/* EmptyState's ambient orb — same expanding-ring motif as the AVA brand
+   animation (animations/scenes/ava-brand.html), recreated as CSS since
+   that's a standalone HTML asset, not something importable into React. */
+@keyframes ring-out {
+  0% {
+    transform: scale(0.6);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(1.6);
+    opacity: 0;
+  }
+}
+
 /* Chrome/Edge paint autofilled inputs with their own blue tint, overriding
    our background regardless of the class applied — force it back to the
    onboarding cream palette (login + signup email/password fields). */
