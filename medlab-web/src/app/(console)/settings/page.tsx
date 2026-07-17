@@ -14,7 +14,7 @@ function hourLabel(h: number) {
 }
 
 export default function SettingsPage() {
-  const { user, tenant, refreshTenant } = useAuth();
+  const { user, tenant, role, refreshTenant } = useAuth();
 
   return (
     <div className="flex flex-col gap-4">
@@ -29,11 +29,36 @@ export default function SettingsPage() {
         <div className="rounded-xl border border-dashed border-slate-300 bg-white/60 px-4.5 py-10 text-center text-sm text-slate-400 dark:border-slate-700 dark:bg-slate-900/60">
           Sign in to a provisioned lab account to edit settings.
         </div>
-      ) : (
+      ) : role === "owner" ? (
         // Keyed by tenant.id so the form's local state initializes fresh
         // from props on mount instead of syncing via an effect.
         <SettingsForm key={tenant.id} tenant={tenant} onSaved={refreshTenant} />
+      ) : (
+        <SettingsReadOnly tenant={tenant} />
       )}
+    </div>
+  );
+}
+
+function SettingsReadOnly({ tenant }: { tenant: AuthTenant }) {
+  const tz = US_TIMEZONES.find((t) => t.value === tenant.timezone)?.label ?? tenant.timezone ?? "—";
+  const rows = [
+    ["Lab name", tenant.lab_name],
+    ["Timezone", tz],
+    ["Hours", `${hourLabel(tenant.open_hour)} – ${hourLabel(tenant.close_hour)}`],
+    ["Chairs per slot", String(tenant.slot_capacity)],
+  ];
+  return (
+    <div className="max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
+      <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+        Only an owner can change lab settings — you have read-only access.
+      </div>
+      {rows.map(([label, value]) => (
+        <div key={label} className="flex items-center justify-between border-t border-slate-100 py-2.5 first:border-t-0 dark:border-slate-800">
+          <span className="text-xs font-semibold text-slate-500 dark:text-slate-400">{label}</span>
+          <span className="text-sm font-medium text-slate-900 dark:text-slate-100">{value}</span>
+        </div>
+      ))}
     </div>
   );
 }

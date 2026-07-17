@@ -21,7 +21,7 @@ const STATUS_LABEL: Record<string, string> = {
 };
 
 export default function BillingPage() {
-  const { user, tenant } = useAuth();
+  const { user, tenant, role } = useAuth();
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string | null>(null);
 
@@ -77,17 +77,25 @@ export default function BillingPage() {
             </div>
           ) : null}
 
-          <button
-            onClick={() => void openPortal()}
-            disabled={busy}
-            className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
-          >
-            {busy ? "Opening…" : "Manage billing →"}
-          </button>
-          <p className="mt-2.5 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
-            Opens Stripe&apos;s billing portal — update your card, download
-            past invoices, or view your next charge date.
-          </p>
+          {role === "owner" ? (
+            <>
+              <button
+                onClick={() => void openPortal()}
+                disabled={busy}
+                className="mt-5 rounded-lg bg-indigo-600 px-4 py-2 text-xs font-semibold text-white disabled:cursor-not-allowed disabled:opacity-40"
+              >
+                {busy ? "Opening…" : "Manage billing →"}
+              </button>
+              <p className="mt-2.5 text-[11px] leading-relaxed text-slate-400 dark:text-slate-500">
+                Opens Stripe&apos;s billing portal — update your card, download
+                past invoices, or view your next charge date.
+              </p>
+            </>
+          ) : (
+            <div className="mt-5 rounded-lg border border-amber-200 bg-amber-50 px-3 py-2 text-[11.5px] text-amber-800 dark:border-amber-500/30 dark:bg-amber-500/10 dark:text-amber-300">
+              Only an owner can manage billing.
+            </div>
+          )}
         </div>
       )}
     </div>

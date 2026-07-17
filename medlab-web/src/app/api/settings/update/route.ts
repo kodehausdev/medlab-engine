@@ -13,6 +13,8 @@ export async function POST(req: Request) {
   const result = await getCallerTenant(req);
   if (!result.ok)
     return NextResponse.json({ error: result.error }, { status: result.status });
+  if (result.caller.role !== "owner")
+    return NextResponse.json({ error: "Only an owner can change lab settings." }, { status: 403 });
 
   let body: Record<string, unknown>;
   try {

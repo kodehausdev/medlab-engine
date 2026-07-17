@@ -12,6 +12,8 @@ export async function POST(req: Request) {
   const result = await getCallerTenant(req);
   if (!result.ok)
     return NextResponse.json({ error: result.error }, { status: result.status });
+  if (result.caller.role !== "owner")
+    return NextResponse.json({ error: "Only an owner can manage billing." }, { status: 403 });
 
   const { tenant } = result;
   if (!tenant.stripe_customer_id)
