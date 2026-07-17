@@ -939,6 +939,35 @@ test('tools: cancel_appointment rejects a booking_id that is not the caller own 
   assert.equal(store.appointments[0].status, 'confirmed', 'record must be untouched');
 });
 
+test('pause: tenants.ai_paused stops booking without touching the model, but emergencies still work', async () => {
+  const store = createMemoryStore();
+  const PAUSED = { ...TENANT, aiPaused: true };
+  const generateFn = scriptedModel([{ text: 'model must never be called while paused' }]);
+  const engine = createEngine({ store, tenant: PAUSED, generateFn, now: NOW });
+
+  const { reply, bookedNow } = await engine.processTurn({
+    channel: 'whatsapp', from: CALLER, text: ALEX_UTTERANCE,
+  });
+
+  assert.match(reply, /temporarily unavailable/i);
+  assert.equal(bookedNow, false);
+  assert.equal(generateFn.seen.length, 0, 'the model must not run while paused');
+  assert.equal(store.appointments.length, 0);
+  assert.equal(engine.events.snapshot().counters.calls_answered, 1, 'still counts as an answered turn');
+
+  // Emergency gate must win even on a paused tenant — pausing turns off
+  // bookings, not the model-independent 911 redirect.
+  const emergencyEngine = createEngine({
+    store: createMemoryStore(), tenant: PAUSED,
+    generateFn: scriptedModel([{ text: 'model must never produce this' }]), now: NOW,
+  });
+  const emerg = await emergencyEngine.processTurn({
+    channel: 'voice', from: CALLER, text: 'I am having chest pain right now',
+  });
+  assert.equal(emerg.emergency, true);
+  assert.match(emerg.reply, /9 ?1 ?1/);
+});
+
 // ══════════════════════════════════════════════════════════════
 // 12. SMS CHANNEL — US text-to-book over plain Twilio SMS
 // ══════════════════════════════════════════════════════════════

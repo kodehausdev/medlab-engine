@@ -97,6 +97,10 @@ function mapTenantRow(row) {
     slotCapacity: row.slot_capacity,
     twilioNumber: row.twilio_number || null,
     whatsappNumber: row.whatsapp_number || null,
+    // Mission Control's Pause AI toggle — this column existed in the DB but
+    // was silently dropped here, so the engine never actually knew a tenant
+    // had been paused (see core/engine.js's processTurn pause gate).
+    aiPaused: row.ai_paused || false,
   };
 }
 
