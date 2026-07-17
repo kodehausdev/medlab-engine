@@ -159,6 +159,26 @@ function createEngine(overrides = {}) {
       };
     }
 
+    // Agency-side kill switch (Mission Control's "Pause AI" toggle,
+    // tenants.ai_paused). Checked AFTER the emergency gate on purpose — a
+    // paused business still can't be allowed to leave a caller with a
+    // possible medical emergency unhandled. Everything else (bookings,
+    // cancellations) stops until an operator resumes it.
+    if (tenant.aiPaused) {
+      // No extra events.emit here — the firstTurn block above already
+      // emitted call.answered for this turn if it's a new conversation;
+      // emitting it again would double-count every paused first message.
+      safeLog(`⏸️  AI paused for tenant ${tenant.id} — declined to book (${channel})`);
+      return {
+        reply:
+          `Thanks for reaching out to ${tenant.labName}. Our AI assistant is temporarily ` +
+          `unavailable — please call the office directly and our team will help you.`,
+        bookedNow: false,
+        session,
+        tenant,
+      };
+    }
+
     const { reply, bookedNow } = await gemini.runTurn(session, text, ctx);
     if (bookedNow) session.completed = true;
 
