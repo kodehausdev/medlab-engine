@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth, type AuthTenant } from "@/components/auth/auth-gate";
-import { authHeaders } from "@/lib/auth-headers";
+import { authHeaders, recoverFromExpiredSession } from "@/lib/auth-headers";
 import { US_TIMEZONES } from "@/lib/timezones";
 
 const HOURS = Array.from({ length: 24 }, (_, h) => h);
@@ -103,6 +103,7 @@ function SettingsForm({
           slot_capacity: slotCapacity,
         }),
       });
+      if (res.status === 401) return void recoverFromExpiredSession();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not save settings.");
       await onSaved();

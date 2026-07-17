@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { useAuth } from "@/components/auth/auth-gate";
-import { authHeaders } from "@/lib/auth-headers";
+import { authHeaders, recoverFromExpiredSession } from "@/lib/auth-headers";
 
 const STATUS_STYLE: Record<string, string> = {
   active: "border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300",
@@ -33,6 +33,7 @@ export default function BillingPage() {
         method: "POST",
         headers: await authHeaders(),
       });
+      if (res.status === 401) return void recoverFromExpiredSession();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not open billing portal.");
       window.location.href = data.url;

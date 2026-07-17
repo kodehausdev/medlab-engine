@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useAuth } from "@/components/auth/auth-gate";
-import { authHeaders } from "@/lib/auth-headers";
+import { authHeaders, recoverFromExpiredSession } from "@/lib/auth-headers";
 
 interface Member {
   user_id: string;
@@ -53,6 +53,7 @@ function TeamPanel() {
   async function load() {
     try {
       const res = await fetch("/api/team/members", { headers: await authHeaders() });
+      if (res.status === 401) return void recoverFromExpiredSession();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not load team.");
       setMembers(data.members);
@@ -74,9 +75,13 @@ function TeamPanel() {
     let disposed = false;
     authHeaders()
       .then((headers) => fetch("/api/team/members", { headers }))
-      .then((res) => res.json().then((data) => ({ ok: res.ok, data })))
-      .then(({ ok, data }) => {
-        if (disposed) return;
+      .then((res) => {
+        if (res.status === 401) return void recoverFromExpiredSession();
+        return res.json().then((data) => ({ ok: res.ok, data }));
+      })
+      .then((result) => {
+        if (disposed || !result) return;
+        const { ok, data } = result;
         if (ok) {
           setMembers(data.members);
           setCallerUserId(data.callerUserId);
@@ -106,6 +111,7 @@ function TeamPanel() {
         headers: await authHeaders(),
         body: JSON.stringify({ email: inviteEmail.trim(), role: inviteRole }),
       });
+      if (res.status === 401) return void recoverFromExpiredSession();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not send invite.");
       setInviteEmail("");
@@ -126,6 +132,7 @@ function TeamPanel() {
         headers: await authHeaders(),
         body: JSON.stringify({ user_id: userId }),
       });
+      if (res.status === 401) return void recoverFromExpiredSession();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not remove.");
       await load();
@@ -144,6 +151,7 @@ function TeamPanel() {
         headers: await authHeaders(),
         body: JSON.stringify({ user_id: userId, role }),
       });
+      if (res.status === 401) return void recoverFromExpiredSession();
       const data = await res.json();
       if (!res.ok) throw new Error(data.error ?? "Could not update role.");
       await load();
