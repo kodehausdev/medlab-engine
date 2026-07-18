@@ -838,6 +838,38 @@ test('emergency: distress language short-circuits BEFORE the model — scripted 
   assert.equal(containsEmergency('book me a blood draw tomorrow'), null);
 });
 
+test('emergency: paging fires to the tenant\'s configured contacts, without delaying the caller\'s redirect', async () => {
+  const paged = [];
+  const engine = createEngine({
+    store: createMemoryStore(),
+    tenant: { ...TENANT, notifyEmail: 'frontdesk@brightpath.test', notifySmsNumber: '+15559990000' },
+    generateFn: scriptedModel([]),
+    now: NOW,
+    notify: async (tenant, ctx) => { paged.push({ tenant, ctx }); },
+  });
+
+  const { reply, emergency } = await engine.processTurn({
+    channel: 'voice', from: CALLER, text: 'she is having a seizure',
+  });
+  assert.equal(emergency, true);
+  assert.match(reply, /9 ?1 ?1/);
+
+  // Fire-and-forget: paging is invoked, but processTurn already returned —
+  // give the microtask queue one tick to observe it landed.
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(paged.length, 1);
+  assert.equal(paged[0].tenant.notifyEmail, 'frontdesk@brightpath.test');
+  assert.equal(paged[0].ctx.channel, 'voice');
+  assert.equal(paged[0].ctx.phone, CALLER);
+});
+
+test('notify: pageEmergency is a safe no-op for a tenant with no notification contacts configured', async () => {
+  const { pageEmergency } = require('../src/services/notify');
+  // No notifyEmail/notifySmsNumber on TENANT — must resolve without ever
+  // attempting a network call (which would hang/fail in the test sandbox).
+  await pageEmergency(TENANT, { channel: 'voice', phone: CALLER });
+});
+
 test('emergency: voice route speaks the redirect and hangs up — no Gather loop', async () => {
   const engine = createEngine({
     store: createMemoryStore(), tenant: TENANT,

@@ -15,6 +15,7 @@ const { createEventBus } = require('../services/events');
 const { createStore } = require('../db/client');
 const { safeLog } = require('../compliance/hipaa');
 const { containsEmergency, emergencyScript } = require('../compliance/emergency');
+const { pageEmergency: realPageEmergency } = require('../services/notify');
 const config = require('../config');
 
 const TENANT_CACHE_TTL_MS = 60 * 1000;
@@ -27,6 +28,9 @@ function createEngine(overrides = {}) {
   const defaultTenant = overrides.tenant || config.tenant;
   const store = overrides.store || createStore();
   const events = overrides.events || createEventBus({ tenant: defaultTenant });
+  // Injectable like store/events/generateFn — tests assert paging was
+  // attempted without making real Resend/Twilio calls.
+  const pageEmergency = overrides.notify || realPageEmergency;
   const sessions = createSessionStore();
   const toolExecutor = createToolHandlers({ store, tenant: defaultTenant, events });
   const gemini = createGeminiEngine({
@@ -150,6 +154,10 @@ function createEngine(overrides = {}) {
           'Caller language suggested a possible medical emergency. ' +
           'Scripted 911/ER redirect delivered; no booking action taken.',
       });
+      // Fire-and-forget: the redirect above is already decided and about to
+      // be delivered — paging must never delay or fail the caller's turn.
+      // pageEmergency swallows its own send errors (just a safeLog).
+      pageEmergency(tenant, { channel, phone: ctx.callerPhone }).catch(() => {});
       return {
         reply: emergencyScript(channel),
         bookedNow: false,

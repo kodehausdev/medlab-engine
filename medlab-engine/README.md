@@ -89,6 +89,10 @@ Model-independent gates layered on top of the HIPAA controls:
    911/ER redirect, `emergency.detected` audit event, no tools run, the
    caller's words never enter session history; voice hangs up after the
    script. Deliberately over-triggers — a receptionist must never triage.
+   Fire-and-forget alongside the redirect, `services/notify.js` pages the
+   tenant's configured `notify_email`/`notify_sms_number` (set in the
+   console's Settings) — a PHI-free alert with the channel and a 4-digit
+   phone tail, nothing more. A no-op for tenants who haven't set either.
 2. **TCPA/CTIA opt-out** (`routes/textChannel.js` + `optouts` table) — exact
    whole-message STOP-family keywords are honored deterministically on both
    SMS and WhatsApp, never routed through the model. Opted-out numbers get

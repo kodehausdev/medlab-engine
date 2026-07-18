@@ -32,6 +32,13 @@ const config = {
     validateWebhooks: process.env.TWILIO_VALIDATE_WEBHOOKS === 'true',
   },
 
+  // Emergency-page email (services/notify.js). SMS paging reuses the Twilio
+  // config above — no separate credential needed for that half.
+  resend: {
+    apiKey: process.env.RESEND_API_KEY || '',
+    from: process.env.EMERGENCY_ALERT_FROM_EMAIL || '',
+  },
+
   tenant: {
     id: process.env.TENANT_ID || 'default',
     labName: process.env.LAB_NAME || 'MedLab',
