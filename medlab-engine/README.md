@@ -19,8 +19,10 @@ medlab-engine/
 │   │   └── engine.js             # channel-agnostic processTurn() — descendant
 │   │                             #   of TCD handleMessage(); all deps injectable
 │   ├── routes/
-│   │   ├── whatsapp.js           # POST /webhook/whatsapp — ack-first, MessageSid
-│   │   │                         #   dedupe, 4s per-sender batching (TCD pattern)
+│   │   ├── textChannel.js        # shared SMS/WA webhook — ack-first, MessageSid
+│   │   │                         #   dedupe, TCPA opt-out gate, 4s batching
+│   │   ├── sms.js                # POST /webhook/sms — US text-to-book (primary)
+│   │   ├── whatsapp.js           # POST /webhook/whatsapp
 │   │   ├── voice.js              # POST /webhook/voice (+/turn, +/stream) —
 │   │   │                         #   <Gather input="speech"> turn loop (prod path)
 │   │   └── dashboard.js          # GET /api/dashboard/state + /events (SSE) —
@@ -77,6 +79,51 @@ medlab-engine/
 5. The system prompt forbids collecting anything beyond the four fields and
    scripts the deflection when callers volunteer health details.
 
+## US-market guardrails
+
+Model-independent gates layered on top of the HIPAA controls:
+
+1. **Emergency detection** (`compliance/emergency.js`) — distress language
+   ("chest pain", "can't breathe", suicide/overdose terms, …) is checked on
+   the raw caller text *before* the turn reaches Gemini. On match: scripted
+   911/ER redirect, `emergency.detected` audit event, no tools run, the
+   caller's words never enter session history; voice hangs up after the
+   script. Deliberately over-triggers — a receptionist must never triage.
+   Fire-and-forget alongside the redirect, `services/notify.js` pages the
+   tenant's configured `notify_email`/`notify_sms_number` (set in the
+   console's Settings) — a PHI-free alert with the channel and a 4-digit
+   phone tail, nothing more. A no-op for tenants who haven't set either.
+2. **TCPA/CTIA opt-out** (`routes/textChannel.js` + `optouts` table) — exact
+   whole-message STOP-family keywords are honored deterministically on both
+   SMS and WhatsApp, never routed through the model. Opted-out numbers get
+   no AI processing and no outbound sends beyond a scripted "reply START to
+   opt back in" note. START/UNSTOP/YES reverses it. Note: bare "cancel"
+   opts out per CTIA; "cancel my appointment" flows to the engine normally.
+3. **AI disclosure** (CA B.O.T. law / Utah AI Policy Act posture) — the
+   voice greeting and the first text reply of every conversation (SMS and
+   WhatsApp) disclose the AI deterministically; the system prompt
+   additionally forbids ever claiming to be human.
+4. **Caller-scoped cancel/reschedule** — `find_my_appointments` +
+   `cancel_appointment` tools match strictly by caller ID; a booking_id
+   that isn't among the caller's own upcoming appointments is refused, so
+   ids can't be guessed to cancel someone else's booking. Reschedule =
+   cancel + rebook. Emits `booking.cancelled`.
+
+## Twilio send reliability
+
+`services/twilio.js` retries outbound sends up to twice on HTTP 429,
+honoring Twilio's `Retry-After` header when present. Known non-retryable
+error codes (currently just `63038`, a trial-account daily quota) skip
+retries entirely rather than burning time on a request that can't succeed
+until the quota resets — **this is not an account flag or blacklist
+signal**, it's the standard 50 message/day cap every Twilio trial account
+has, on a rolling 24h window; upgrading off the trial tier removes it.
+Failure logs always use Twilio's own `message`/`code` verbatim, never a
+guessed explanation. Separately, `compliance/redact.js`'s phone-number
+regex is boundary-checked so it doesn't mangle Twilio SIDs (long hex
+strings that frequently contain 9+ consecutive digits) when redacting log
+lines — a real bug that corrupted diagnostic detail before it was fixed.
+
 > Note: technical controls ≠ compliance. Production still needs a Twilio
 > BAA (available on their HIPAA-eligible products), hosting under a BAA,
 > access controls, and a signed BAA with each lab customer. For the model
@@ -107,6 +154,8 @@ Model auth is either/or:
 
 Point the Twilio number at:
 - Voice webhook → `POST {PUBLIC_BASE_URL}/webhook/voice` (Gather loop, prod)
+- SMS/Messaging webhook → `POST {PUBLIC_BASE_URL}/webhook/sms` (primary US
+  text-to-book channel — the same number carries voice and SMS)
 - WhatsApp webhook → `POST {PUBLIC_BASE_URL}/webhook/whatsapp`
 - Streaming voice (beta) → `POST {PUBLIC_BASE_URL}/webhook/voice/stream`
 

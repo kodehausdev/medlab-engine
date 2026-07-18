@@ -168,22 +168,24 @@ test('voice: full booking flow returns confirmation TwiML and persists a clean r
 // ══════════════════════════════════════════════════════════════
 // 2. WHATSAPP E2E — webhook → batcher → Gemini → booking → outbound reply
 // ══════════════════════════════════════════════════════════════
-test('whatsapp: inbound text is batched, booked, and confirmed via outbound send', async () => {
+test('whatsapp: inbound text is batched, booked, and confirmed via outbound send from the tenant\'s own WA number', async () => {
   const store = createMemoryStore();
   const generateFn = alexBookingScript();
   const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
   const sent = [];
   const bundle = createApp({
     engine,
-    sendWhatsApp: async (to, body) => sent.push({ to, body }),
+    sendWhatsApp: async (to, body, from) => sent.push({ to, body, from }),
     batchWindowMs: 10,
   });
   const { server, port } = await startServer(bundle);
 
   try {
     const waFrom = `whatsapp:${CALLER}`;
+    const waTo = 'whatsapp:+15005550006'; // the tenant's own registered WA number
     const res = await postForm(port, '/webhook/whatsapp', {
       From: waFrom,
+      To: waTo,
       Body: ALEX_UTTERANCE,
       MessageSid: 'SM_test_1',
     });
@@ -192,6 +194,10 @@ test('whatsapp: inbound text is batched, booked, and confirmed via outbound send
     await waitFor(() => sent.length >= 1);
 
     assert.equal(sent[0].to, waFrom);
+    // Replies must go out from the number the patient actually messaged, not
+    // a single shared TWILIO_WHATSAPP_NUMBER — otherwise every tenant's
+    // WhatsApp replies collide on one sender.
+    assert.equal(sent[0].from, waTo);
     assert.match(sent[0].body, /You're all set, Alex/);
     assert.match(sent[0].body, /Lipid Panel/);
 
@@ -202,7 +208,7 @@ test('whatsapp: inbound text is batched, booked, and confirmed via outbound send
 
     // Duplicate MessageSid must be ignored (Twilio retry semantics)
     await postForm(port, '/webhook/whatsapp', {
-      From: waFrom, Body: ALEX_UTTERANCE, MessageSid: 'SM_test_1',
+      From: waFrom, To: waTo, Body: ALEX_UTTERANCE, MessageSid: 'SM_test_1',
     });
     await new Promise(r => setTimeout(r, 60));
     assert.equal(store.appointments.length, 1, 'dedupe must block replayed webhook');
@@ -331,6 +337,63 @@ test('tools: capacity enforcement — a full slot rejects further bookings', asy
   assert.equal(c.confirmed, undefined);
   assert.match(c.error, /full/);
   assert.equal(store.appointments.length, 2);
+});
+
+test('tools: blocked windows stop the AI from offering or booking a slot, without touching existing bookings in it', async () => {
+  const store = createMemoryStore();
+  const exec = createToolHandlers({ store, tenant: TENANT });
+
+  // Existing confirmed booking in the slot, made before it was blocked.
+  const pre = await exec.execute('book_appointment', {
+    patient_name: 'Early Bird', phone_number: CALLER,
+    test_type: 'Blood Draw', date: THURSDAY, time_slot: '11:00',
+  }, {});
+  assert.equal(pre.confirmed, true);
+
+  store.blocks.push({ tenant_id: TENANT.id, date: THURSDAY, time_slot: '11:00', reason: 'Staff meeting' });
+
+  const avail = await exec.execute('check_availability', { date: THURSDAY, time_slot: '11:00' }, {});
+  assert.equal(avail.requested_slot_available, false);
+
+  const allDay = await exec.execute('check_availability', { date: THURSDAY }, {});
+  assert.ok(!allDay.open_slots.includes('11:00'));
+
+  const blocked = await exec.execute('book_appointment', {
+    patient_name: 'Late Comer', phone_number: CALLER,
+    test_type: 'Blood Draw', date: THURSDAY, time_slot: '11:00',
+  }, {});
+  assert.equal(blocked.confirmed, undefined);
+  assert.match(blocked.error, /not available/);
+
+  // The pre-existing booking is untouched — a block holds new capacity, it
+  // doesn't cancel what's already there.
+  assert.equal(store.appointments.length, 1);
+  assert.equal(store.appointments[0].id, pre.booking_id);
+});
+
+test('tools: a per-tenant test catalog overrides the default six tests', async () => {
+  const customTenant = {
+    ...TENANT,
+    testCatalog: [{ code: 'X_RAY', name: 'Chest X-Ray', duration_min: 20 }],
+  };
+  const exec = createToolHandlers({ store: createMemoryStore(), tenant: customTenant });
+
+  const list = await exec.execute('list_available_tests', {}, {});
+  assert.deepEqual(list.tests, [{ name: 'Chest X-Ray', duration_minutes: 20 }]);
+
+  // A test that only exists in the DEFAULT catalog is unknown to this tenant.
+  const rejected = await exec.execute('book_appointment', {
+    patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '09:00',
+  }, {});
+  assert.match(rejected.error, /Unknown test/);
+  assert.match(rejected.error, /Chest X-Ray/);
+
+  const ok = await exec.execute('book_appointment', {
+    patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'x-ray', date: THURSDAY, time_slot: '09:00',
+  }, {});
+  assert.equal(ok.test_type, 'Chest X-Ray');
 });
 
 test('tools: fuzzy test-type matching and validation errors', async () => {
@@ -744,4 +807,326 @@ test('dashboard: engine seeds counters + ring buffer from the audit trail at boo
   const live = engine.events.emit('call.answered', { tenantId: 'test-lab', channel: 'voice' });
   assert.equal(live.id, 'evt-9');
   assert.equal(engine.events.snapshot('test-lab').counters.calls_answered, 3);
+});
+
+// ══════════════════════════════════════════════════════════════
+// 11. US-MARKET GUARDRAILS — emergency gate, TCPA opt-out,
+//     AI disclosure, cancel/reschedule
+// ══════════════════════════════════════════════════════════════
+const { containsEmergency } = require('../src/compliance/emergency');
+
+test('emergency: distress language short-circuits BEFORE the model — scripted 911 redirect', async () => {
+  const store = createMemoryStore();
+  const generateFn = scriptedModel([{ text: 'model must never produce this' }]);
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+
+  const { reply, emergency, bookedNow, session } = await engine.processTurn({
+    channel: 'voice', from: CALLER, text: 'I am having chest pain right now',
+  });
+
+  assert.equal(emergency, true);
+  assert.equal(bookedNow, false);
+  assert.match(reply, /9 ?1 ?1/);
+  assert.equal(generateFn.seen.length, 0, 'the model must not see an emergency turn');
+  assert.equal(session.history.length, 0, 'distress text must never enter session history');
+  assert.equal(store.appointments.length, 0);
+
+  // PHI-free audit event + counter
+  const ev = engine.events.snapshot().recent.find(e => e.type === 'emergency.detected');
+  assert.ok(ev, 'emergency.detected must be emitted');
+  assert.equal(ev.data.status, 'emergency_redirected');
+  assert.doesNotMatch(JSON.stringify(ev), /chest pain/i, 'event must carry no caller content');
+  assert.equal(engine.events.snapshot().counters.emergency_events, 1);
+
+  // Word-boundary matching: real terms fire, lookalikes don't
+  assert.equal(containsEmergency('my dad is unconscious'), 'unconscious');
+  assert.equal(containsEmergency('I want to log my keystrokes'), null);
+  assert.equal(containsEmergency('book me a blood draw tomorrow'), null);
+});
+
+test('emergency: paging fires to the tenant\'s configured contacts, without delaying the caller\'s redirect', async () => {
+  const paged = [];
+  const engine = createEngine({
+    store: createMemoryStore(),
+    tenant: { ...TENANT, notifyEmail: 'frontdesk@brightpath.test', notifySmsNumber: '+15559990000' },
+    generateFn: scriptedModel([]),
+    now: NOW,
+    notify: async (tenant, ctx) => { paged.push({ tenant, ctx }); },
+  });
+
+  const { reply, emergency } = await engine.processTurn({
+    channel: 'voice', from: CALLER, text: 'she is having a seizure',
+  });
+  assert.equal(emergency, true);
+  assert.match(reply, /9 ?1 ?1/);
+
+  // Fire-and-forget: paging is invoked, but processTurn already returned —
+  // give the microtask queue one tick to observe it landed.
+  await new Promise((r) => setTimeout(r, 0));
+  assert.equal(paged.length, 1);
+  assert.equal(paged[0].tenant.notifyEmail, 'frontdesk@brightpath.test');
+  assert.equal(paged[0].ctx.channel, 'voice');
+  assert.equal(paged[0].ctx.phone, CALLER);
+});
+
+test('notify: pageEmergency is a safe no-op for a tenant with no notification contacts configured', async () => {
+  const { pageEmergency } = require('../src/services/notify');
+  // No notifyEmail/notifySmsNumber on TENANT — must resolve without ever
+  // attempting a network call (which would hang/fail in the test sandbox).
+  await pageEmergency(TENANT, { channel: 'voice', phone: CALLER });
+});
+
+test('emergency: voice route speaks the redirect and hangs up — no Gather loop', async () => {
+  const engine = createEngine({
+    store: createMemoryStore(), tenant: TENANT,
+    generateFn: scriptedModel([]), now: NOW,
+  });
+  const bundle = createApp({ engine });
+  const { server, port } = await startServer(bundle);
+  try {
+    const turn = await postForm(port, '/webhook/voice/turn', {
+      From: CALLER, CallSid: 'CA_emerg', SpeechResult: 'I think my husband is having a stroke',
+    });
+    assert.equal(turn.status, 200);
+    assert.match(turn.body, /9 1 1/);
+    assert.match(turn.body, /<Hangup\/>/);
+    assert.doesNotMatch(turn.body, /<Gather/);
+  } finally {
+    server.close();
+  }
+});
+
+test('tcpa: STOP is honored deterministically — suppresses the AI until START restores', async () => {
+  const store = createMemoryStore();
+  const generateFn = alexBookingScript();
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+  const sent = [];
+  const bundle = createApp({
+    engine,
+    sendWhatsApp: async (to, body) => sent.push({ to, body }),
+    batchWindowMs: 10,
+  });
+  const { server, port } = await startServer(bundle);
+  const waFrom = `whatsapp:${CALLER}`;
+
+  try {
+    // STOP → opt-out recorded + single confirmation, model never invoked
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: 'STOP', MessageSid: 'SM_stop_1',
+    });
+    await waitFor(() => sent.length >= 1);
+    assert.match(sent[0].body, /unsubscribed/i);
+    assert.match(sent[0].body, /START/);
+    assert.equal(await store.isOptedOut('test-lab', CALLER), true);
+    assert.equal(generateFn.seen.length, 0, 'STOP must never reach the model');
+    const optEv = engine.events.snapshot().recent.find(e => e.type === 'optout.received');
+    assert.ok(optEv, 'optout.received must be emitted');
+
+    // Opted out: a booking attempt is suppressed with a service note only
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: ALEX_UTTERANCE, MessageSid: 'SM_stop_2',
+    });
+    await waitFor(() => sent.length >= 2);
+    assert.match(sent[1].body, /opted out/i);
+    await new Promise(r => setTimeout(r, 40)); // outlast the batch window
+    assert.equal(generateFn.seen.length, 0, 'opted-out messages must not reach the model');
+    assert.equal(store.appointments.length, 0);
+
+    // START → restored, then booking flows normally again
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: 'start', MessageSid: 'SM_stop_3',
+    });
+    await waitFor(() => sent.length >= 3);
+    assert.match(sent[2].body, /re-subscribed/i);
+    assert.equal(await store.isOptedOut('test-lab', CALLER), false);
+
+    await postForm(port, '/webhook/whatsapp', {
+      From: waFrom, Body: ALEX_UTTERANCE, MessageSid: 'SM_stop_4',
+    });
+    await waitFor(() => store.appointments.length >= 1);
+    assert.equal(store.appointments[0].patient_name, 'Alex');
+  } finally {
+    server.close();
+  }
+});
+
+test('disclosure: voice greeting and first WhatsApp reply identify the AI', async () => {
+  const store = createMemoryStore();
+  const engine = createEngine({
+    store, tenant: TENANT,
+    generateFn: scriptedModel([
+      { text: 'Hi! What test would you like to book?' },
+      { text: 'Great — what day works for you?' },
+    ]),
+    now: NOW,
+  });
+  const bundle = createApp({ engine });
+  const { server, port } = await startServer(bundle);
+  try {
+    const greet = await postForm(port, '/webhook/voice', { From: CALLER, CallSid: 'CA_disc' });
+    assert.match(greet.body, /A I assistant/, 'voice greeting must disclose the AI');
+  } finally {
+    server.close();
+  }
+
+  // First WA turn gets the deterministic disclosure prefix…
+  const first = await engine.processTurn({
+    channel: 'whatsapp', from: `whatsapp:${CALLER}`, text: 'hi',
+  });
+  assert.match(first.reply, /^You're chatting with BrightPath Diagnostics's automated AI assistant\./);
+
+  // …and later turns don't repeat it.
+  const second = await engine.processTurn({
+    channel: 'whatsapp', from: `whatsapp:${CALLER}`, text: 'a blood draw please',
+  });
+  assert.doesNotMatch(second.reply, /automated AI assistant/);
+
+  // The system prompt carries the never-claim-human rule.
+  const { buildSystemPrompt } = require('../src/services/gemini');
+  assert.match(buildSystemPrompt(TENANT, '2026-07-04'), /Never claim or imply you are human/);
+});
+
+test('tools: cancel flow — find_my_appointments + cancel_appointment frees the slot', async () => {
+  const store = createMemoryStore();
+  await store.insertAppointment({
+    tenant_id: 'test-lab', patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'voice', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const generateFn = scriptedModel([
+    { functionCalls: [{ name: 'find_my_appointments', args: {} }] },
+    { functionCalls: [{ name: 'cancel_appointment', args: { booking_id: 1 } }] },
+    { text: 'Done — your Lipid Panel on Thursday at 10 AM is cancelled. Anything else?' },
+  ]);
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+
+  const { reply } = await engine.processTurn({
+    channel: 'voice', from: CALLER, text: 'I need to drop my Thursday booking',
+  });
+
+  assert.match(reply, /cancelled/i);
+  assert.equal(store.appointments[0].status, 'cancelled');
+  assert.equal(await store.countBookings('test-lab', THURSDAY, '10:00'), 0, 'slot must be freed');
+
+  const ev = engine.events.snapshot().recent.find(e => e.type === 'booking.cancelled');
+  assert.ok(ev, 'booking.cancelled must be emitted');
+  assert.equal(ev.data.booking_id, 1);
+  assert.equal(ev.data.status, 'cancelled');
+});
+
+test('tools: cancel_appointment rejects a booking_id that is not the caller own booking', async () => {
+  const store = createMemoryStore();
+  await store.insertAppointment({
+    tenant_id: 'test-lab', patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'voice', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const toolExecutor = createToolHandlers({ store, tenant: TENANT });
+  const result = await toolExecutor.execute(
+    'cancel_appointment',
+    { booking_id: 1 },
+    { tenant: TENANT, callerPhone: '+15550009999', now: NOW } // different caller
+  );
+
+  assert.ok(result.error, 'foreign caller must not cancel the booking');
+  assert.equal(store.appointments[0].status, 'confirmed', 'record must be untouched');
+});
+
+test('pause: tenants.ai_paused stops booking without touching the model, but emergencies still work', async () => {
+  const store = createMemoryStore();
+  const PAUSED = { ...TENANT, aiPaused: true };
+  const generateFn = scriptedModel([{ text: 'model must never be called while paused' }]);
+  const engine = createEngine({ store, tenant: PAUSED, generateFn, now: NOW });
+
+  const { reply, bookedNow } = await engine.processTurn({
+    channel: 'whatsapp', from: CALLER, text: ALEX_UTTERANCE,
+  });
+
+  assert.match(reply, /temporarily unavailable/i);
+  assert.equal(bookedNow, false);
+  assert.equal(generateFn.seen.length, 0, 'the model must not run while paused');
+  assert.equal(store.appointments.length, 0);
+  assert.equal(engine.events.snapshot().counters.calls_answered, 1, 'still counts as an answered turn');
+
+  // Emergency gate must win even on a paused tenant — pausing turns off
+  // bookings, not the model-independent 911 redirect.
+  const emergencyEngine = createEngine({
+    store: createMemoryStore(), tenant: PAUSED,
+    generateFn: scriptedModel([{ text: 'model must never produce this' }]), now: NOW,
+  });
+  const emerg = await emergencyEngine.processTurn({
+    channel: 'voice', from: CALLER, text: 'I am having chest pain right now',
+  });
+  assert.equal(emerg.emergency, true);
+  assert.match(emerg.reply, /9 ?1 ?1/);
+});
+
+// ══════════════════════════════════════════════════════════════
+// 12. SMS CHANNEL — US text-to-book over plain Twilio SMS
+// ══════════════════════════════════════════════════════════════
+test('sms: text-to-book flows end to end — disclosure, tenant-number reply, sms channel row', async () => {
+  const store = createMemoryStore();
+  const generateFn = alexBookingScript();
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+  const sent = [];
+  const bundle = createApp({
+    engine,
+    sendSms: async (to, body, via) => sent.push({ to, body, via }),
+    batchWindowMs: 10,
+  });
+  const { server, port } = await startServer(bundle);
+  const LAB_NUMBER = '+15550001111';
+
+  try {
+    const res = await postForm(port, '/webhook/sms', {
+      From: CALLER,
+      To: LAB_NUMBER,
+      Body: ALEX_UTTERANCE,
+      MessageSid: 'SM_sms_1',
+    });
+    assert.equal(res.status, 200);
+
+    await waitFor(() => sent.length >= 1);
+
+    // Reply goes back to the caller FROM the number they texted
+    assert.equal(sent[0].to, CALLER);
+    assert.equal(sent[0].via, LAB_NUMBER);
+    // First text reply carries the AI disclosure, then the confirmation
+    assert.match(sent[0].body, /^You're chatting with BrightPath Diagnostics's automated AI assistant\./);
+    assert.match(sent[0].body, /You're all set, Alex/);
+
+    // Appointment row is channel-tagged 'sms'
+    assert.equal(store.appointments.length, 1);
+    assert.equal(store.appointments[0].channel, 'sms');
+    assert.equal(store.appointments[0].phone_number, CALLER);
+  } finally {
+    server.close();
+  }
+});
+
+test('sms: the TCPA STOP gate covers SMS through the shared text-channel router', async () => {
+  const store = createMemoryStore();
+  const generateFn = scriptedModel([{ text: 'model must not run' }]);
+  const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
+  const sent = [];
+  const bundle = createApp({
+    engine,
+    sendSms: async (to, body, via) => sent.push({ to, body, via }),
+    batchWindowMs: 10,
+  });
+  const { server, port } = await startServer(bundle);
+
+  try {
+    await postForm(port, '/webhook/sms', {
+      From: CALLER, To: '+15550001111', Body: 'STOP', MessageSid: 'SM_sms_stop',
+    });
+    await waitFor(() => sent.length >= 1);
+    assert.match(sent[0].body, /unsubscribed/i);
+    assert.equal(await store.isOptedOut('test-lab', CALLER), true);
+    assert.equal(generateFn.seen.length, 0, 'STOP must never reach the model');
+  } finally {
+    server.close();
+  }
 });

@@ -18,7 +18,14 @@ export interface AuditRow {
   id: number;
   tenant_id: string | null;
   event_id: string | null;
-  type: "call.answered" | "booking.confirmed" | "guardrail.redacted";
+  type:
+    | "call.answered"
+    | "booking.confirmed"
+    | "booking.cancelled"
+    | "guardrail.redacted"
+    | "emergency.detected"
+    | "optout.received"
+    | "optout.restored";
   channel: "voice" | "whatsapp" | "unknown";
   phone_tail: string | null;
   data: {

@@ -1,11 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { KpiCard } from "@/components/console/kpi-card";
 import { LiveFeed } from "@/components/console/live-feed";
 import { useDashboard } from "@/components/console/dashboard-provider";
 import { useAuth } from "@/components/auth/auth-gate";
 import { NumberIntake } from "@/components/console/number-intake";
 import { ProvisioningTracker } from "@/components/console/provisioning-tracker";
+import { formatLongDate } from "@/lib/format-time";
 
 const AVG_MINUTES_SAVED_PER_CALL = 4.2;
 
@@ -34,7 +36,7 @@ const ICONS = {
 };
 
 const CONFIGURING_BADGE = (
-  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 font-mono text-[10.5px] font-semibold text-amber-700">
+  <span className="inline-flex items-center rounded-full bg-amber-50 px-2 py-0.5 font-mono text-[10.5px] font-semibold text-amber-700 dark:bg-amber-500/10 dark:text-amber-300">
     Configuring Engine
   </span>
 );
@@ -47,12 +49,9 @@ export default function OverviewPage() {
   const provisioningActive = onboardingState === "provisioning_active";
 
   const hoursSaved = (counters.calls_answered * AVG_MINUTES_SAVED_PER_CALL) / 60;
-  const today = new Date().toLocaleDateString("en-US", {
-    weekday: "long",
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
+  // The lab's own "today", not the viewer's — matters near midnight for
+  // anyone checking the console from a different timezone than the lab.
+  const today = formatLongDate(new Date(), tenant?.timezone);
 
   return (
     <div className="flex flex-col gap-5">
@@ -61,16 +60,19 @@ export default function OverviewPage() {
           <h1 className="text-[21px] font-bold tracking-tight">
             Front-Desk Operations
           </h1>
-          <p className="mt-0.5 text-[13px] text-slate-500">
+          <p className="mt-0.5 text-[13px] text-slate-500 dark:text-slate-400">
             {today}
             {tenant
               ? ` · ${tenant.lab_name} · ${tenant.slot_capacity} chairs per slot`
               : " · connecting to engine…"}
           </p>
         </div>
-        <span className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500">
+        <Link
+          href="/billing"
+          className="rounded-lg border border-slate-200 bg-white px-3 py-1.5 text-xs font-medium text-slate-500 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800"
+        >
           Plan: Pro — $297/mo
-        </span>
+        </Link>
       </div>
 
       <div className="grid grid-cols-[repeat(auto-fit,minmax(230px,1fr))] gap-3.5">
@@ -102,7 +104,7 @@ export default function OverviewPage() {
             ) : (
               <>
                 {hoursSaved.toFixed(1)}{" "}
-                <span className="text-base font-semibold text-slate-500">
+                <span className="text-base font-semibold text-slate-500 dark:text-slate-400">
                   hrs
                 </span>
               </>
@@ -116,26 +118,26 @@ export default function OverviewPage() {
               : `≈ ${AVG_MINUTES_SAVED_PER_CALL} min staff time per call handled`
           }
         />
-        <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-gradient-to-b from-emerald-50/80 to-white px-4.5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_20px_-14px_rgba(4,120,87,0.35)]">
+        <div className="relative overflow-hidden rounded-xl border border-emerald-200 bg-gradient-to-b from-emerald-50/80 to-white px-4.5 py-4 shadow-[0_1px_2px_rgba(15,23,42,0.04),0_10px_20px_-14px_rgba(4,120,87,0.35)] dark:border-emerald-500/30 dark:from-emerald-500/10 dark:to-slate-900 dark:shadow-none">
           <span className="absolute inset-x-0 top-0 h-[3px] bg-emerald-500" />
           <div className="flex items-center justify-between">
-            <span className="text-[11.5px] font-semibold uppercase tracking-wider text-emerald-700">
+            <span className="text-[11.5px] font-semibold tracking-wider text-emerald-700 uppercase dark:text-emerald-400">
               Compliance Status
             </span>
-            <span className="grid size-7 flex-none place-items-center rounded-lg bg-emerald-100 text-emerald-600">
+            <span className="grid size-7 flex-none place-items-center rounded-lg bg-emerald-100 text-emerald-600 dark:bg-emerald-500/15 dark:text-emerald-300">
               <Icon path={ICONS.shield} />
             </span>
           </div>
-          <div className="mt-2.5 text-[26px] font-bold leading-none tracking-tight text-emerald-950">
+          <div className="mt-2.5 text-[26px] font-bold leading-none tracking-tight text-emerald-950 dark:text-emerald-100">
             {counters.guardrail_events === 0
               ? "100% PHI-Sanitized"
               : `${counters.guardrail_events} guardrail intercept${
                   counters.guardrail_events === 1 ? "" : "s"
                 }`}
           </div>
-          <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1">
+          <div className="mt-2.5 inline-flex items-center gap-1.5 rounded-full border border-emerald-300 bg-emerald-100 px-2.5 py-1 dark:border-emerald-500/30 dark:bg-emerald-500/10">
             <span className="size-1.5 rounded-full bg-emerald-600" />
-            <span className="font-mono text-[11px] font-semibold text-emerald-800">
+            <span className="font-mono text-[11px] font-semibold text-emerald-800 dark:text-emerald-300">
               HIPAA GUARDRAILS ACTIVE
             </span>
           </div>

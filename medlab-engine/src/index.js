@@ -6,10 +6,11 @@ const express = require('express');
 const config = require('./config');
 const { createEngine } = require('./core/engine');
 const { createWhatsAppRouter } = require('./routes/whatsapp');
+const { createSmsRouter } = require('./routes/sms');
 const { createVoiceRouter } = require('./routes/voice');
 const { createDashboardRouter } = require('./routes/dashboard');
 const { twilioSignatureGuard } = require('./services/twilioSig');
-const { sendWhatsApp } = require('./services/twilio');
+const { sendWhatsApp, sendSms } = require('./services/twilio');
 const { phiRequestGuard, safeLog } = require('./compliance/hipaa');
 
 function createApp(overrides = {}) {
@@ -33,6 +34,11 @@ function createApp(overrides = {}) {
   app.use(createWhatsAppRouter({
     engine,
     sendWhatsApp: send,
+    batchWindowMs: overrides.batchWindowMs,
+  }));
+  app.use(createSmsRouter({
+    engine,
+    sendSms: overrides.sendSms || sendSms,
     batchWindowMs: overrides.batchWindowMs,
   }));
   app.use(createVoiceRouter({ engine }));

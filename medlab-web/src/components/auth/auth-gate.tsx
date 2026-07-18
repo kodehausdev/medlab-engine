@@ -22,12 +22,16 @@ import type { EngineState } from "@/lib/engine";
 export type AuthTenant = EngineState["tenant"];
 
 const TENANT_COLUMNS =
-  "id, lab_name, open_hour, close_hour, slot_capacity, onboarding_state, whatsapp_number, subscription_status";
+  "id, lab_name, open_hour, close_hour, slot_capacity, onboarding_state, whatsapp_number, subscription_status, timezone, test_catalog, notify_email, notify_sms_number";
 
 interface AuthContextValue {
   user: User | null;
   /** The signed-in user's lab, fetched under RLS — null in keyless dev mode. */
   tenant: AuthTenant | null;
+  /** The signed-in user's own role on this tenant ('owner' | 'staff') — null
+   *  in keyless dev mode. Client-side only for UI gating; the real
+   *  boundary is each API route checking this server-side too. */
+  role: string | null;
   /** Re-fetches the tenant row — call after an onboarding-state change. */
   refreshTenant: () => Promise<void>;
   signOut: () => Promise<void>;
@@ -36,6 +40,7 @@ interface AuthContextValue {
 const AuthContext = createContext<AuthContextValue>({
   user: null,
   tenant: null,
+  role: null,
   refreshTenant: async () => {},
   signOut: async () => {},
 });
@@ -48,6 +53,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   const router = useRouter();
   const [user, setUser] = useState<User | null>(null);
   const [tenant, setTenant] = useState<AuthTenant | null>(null);
+  const [role, setRole] = useState<string | null>(null);
   const [status, setStatus] = useState<"loading" | "out" | "in">(
     supabase ? "loading" : "in"
   );
@@ -56,14 +62,21 @@ export function AuthGate({ children }: { children: ReactNode }) {
     const sb = supabase;
     if (!sb) return;
 
-    // RLS returns exactly the caller's own tenant row.
+    // RLS returns exactly the caller's own tenant row (and, for profiles,
+    // exactly their own row — "read own profile" doesn't allow reading
+    // teammates').
     const loadTenant = async (haveSession: boolean) => {
       if (!haveSession) {
         setTenant(null);
+        setRole(null);
         return;
       }
-      const { data } = await sb.from("tenants").select(TENANT_COLUMNS).single();
-      setTenant((data as AuthTenant) ?? null);
+      const [tenantRes, profileRes] = await Promise.all([
+        sb.from("tenants").select(TENANT_COLUMNS).single(),
+        sb.from("profiles").select("role").single(),
+      ]);
+      setTenant((tenantRes.data as AuthTenant) ?? null);
+      setRole(profileRes.data?.role ?? null);
     };
 
     sb.auth.getSession().then(({ data }) => {
@@ -110,7 +123,7 @@ export function AuthGate({ children }: { children: ReactNode }) {
   }
 
   return (
-    <AuthContext.Provider value={{ user, tenant, refreshTenant, signOut }}>
+    <AuthContext.Provider value={{ user, tenant, role, refreshTenant, signOut }}>
       {children}
     </AuthContext.Provider>
   );

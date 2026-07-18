@@ -20,7 +20,11 @@ create table if not exists tenants (
     -- payment_pending | provisioning_pending_number | provisioning_active | live_active
     -- self-serve signup starts at payment_pending; hand-provisioned/legacy
     -- tenants default straight to live_active (see migrations/0004)
+  test_catalog jsonb,                     -- null/empty = default catalog (see schemas.js)
+  notify_email text,                      -- recipient contacts for future emergency paging (unused so far)
+  notify_sms_number text,
   created_at timestamptz default now()
+    -- (Existing databases: apply migrations/0010_tenant_test_catalog_notify.sql instead.)
 );
 
 -- Single-tenant MVP seed — matches the .env defaults. Multi-tenant onboarding
@@ -37,13 +41,43 @@ create table if not exists appointments (
   test_type text not null,
   date date not null,
   time_slot text not null,                -- 'HH:MM' 24h
-  channel text not null,                  -- 'voice' | 'whatsapp'
+  channel text not null,                  -- 'voice' | 'sms' | 'whatsapp'
   status text default 'confirmed',        -- confirmed | cancelled | completed
   created_at timestamptz default now()
 );
 
 create index if not exists idx_appointments_slot
   on appointments (tenant_id, date, time_slot) where status = 'confirmed';
+
+-- Blocked scheduling windows (lunch, maintenance, holidays…) — a hold on new
+-- capacity, not a cancellation of existing bookings. Written by the console
+-- (service-role), read by the engine to stop offering/accepting the slot.
+-- (Existing databases: apply migrations/0009_schedule_blocks.sql instead.)
+create table if not exists schedule_blocks (
+  id bigint generated always as identity primary key,
+  tenant_id text not null references tenants(id),
+  date date not null,
+  time_slot text not null,                -- 'HH:MM' 24h, matches appointments.time_slot
+  reason text,
+  created_by uuid,                        -- profiles.user_id of the operator who blocked it
+  created_at timestamptz default now(),
+  unique (tenant_id, date, time_slot)
+);
+
+create index if not exists idx_schedule_blocks_day
+  on schedule_blocks (tenant_id, date);
+
+-- TCPA/CTIA opt-out registry: STOP keywords honored deterministically
+-- (never routed through the model), recorded per (tenant, phone). The
+-- engine suppresses all outbound sends to opted-out numbers.
+-- (Existing databases: apply migrations/0005_optouts.sql instead.)
+create table if not exists optouts (
+  tenant_id text not null references tenants(id),
+  phone_number text not null,             -- normalized, no 'whatsapp:' prefix
+  opted_out boolean not null default true,
+  updated_at timestamptz default now(),
+  primary key (tenant_id, phone_number)
+);
 
 -- Audit log: the durable copy of the dashboard event stream
 -- (services/events.js envelope). PHI-minimized at the source — phone numbers
@@ -53,7 +87,7 @@ create table if not exists audit_events (
   tenant_id text,
   event_id text,                          -- engine envelope id ('evt-7', per-process)
   type text not null,                     -- 'call.answered' | 'booking.confirmed' | 'guardrail.redacted'
-  channel text default 'unknown',         -- 'voice' | 'whatsapp'
+  channel text default 'unknown',         -- 'voice' | 'sms' | 'whatsapp'
   phone_tail text,                        -- last 4 digits only
   data jsonb default '{}',                -- type-specific, whitelisted fields only
   created_at timestamptz default now()
@@ -75,7 +109,13 @@ create table if not exists profiles (
   user_id uuid primary key references auth.users(id) on delete cascade,
   tenant_id text not null references tenants(id),
   role text not null default 'staff',     -- 'owner' | 'staff'
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  -- Stamped lazily on first successful authenticated resolution, not by
+  -- Supabase's auth.users timestamps — those flip on any clicked
+  -- magic-link (invite, recovery, even a broken one), whether or not a
+  -- password was ever actually set. See migrations/0008 for the same
+  -- reasoning applied to mission-control's operators table first.
+  joined_at timestamptz
 );
 
 create or replace function public.user_tenant_id()
@@ -92,6 +132,10 @@ alter table tenants enable row level security;
 alter table appointments enable row level security;
 alter table audit_events enable row level security;
 alter table profiles enable row level security;
+alter table schedule_blocks enable row level security;
+-- optouts: engine-only (service role). RLS on with no policies = invisible
+-- to console users and the anon key.
+alter table optouts enable row level security;
 
 create policy "read own profile" on profiles
   for select to authenticated using (user_id = (select auth.uid()));
@@ -100,6 +144,8 @@ create policy "tenant members read their tenant" on tenants
 create policy "tenant members read their appointments" on appointments
   for select to authenticated using (tenant_id = public.user_tenant_id());
 create policy "tenant members read their audit trail" on audit_events
+  for select to authenticated using (tenant_id = public.user_tenant_id());
+create policy "tenant members read their schedule blocks" on schedule_blocks
   for select to authenticated using (tenant_id = public.user_tenant_id());
 
 -- No insert/update/delete policies on purpose: the console is read-only;

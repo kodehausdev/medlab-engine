@@ -5,15 +5,21 @@
 const {
   guardToolArgs, sanitizeAppointment, ComplianceError, safeLog,
 } = require('../../compliance/hipaa');
-const { TOOL_ARG_WHITELIST, TEST_CATALOG } = require('./schemas');
+const { TOOL_ARG_WHITELIST, DEFAULT_TEST_CATALOG } = require('./schemas');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const SLOT_RE = /^([01]\d|2[0-3]):(00|30)$/;
 
-function normalizeTestType(input) {
+// Tenants who haven't customized their catalog (tenants.test_catalog is
+// null/empty) get the default six tests — see schemas.js.
+function catalogFor(tenant) {
+  return tenant?.testCatalog && tenant.testCatalog.length ? tenant.testCatalog : DEFAULT_TEST_CATALOG;
+}
+
+function normalizeTestType(input, catalog = DEFAULT_TEST_CATALOG) {
   if (!input) return null;
   const q = input.trim().toLowerCase();
-  const hit = TEST_CATALOG.find(
+  const hit = catalog.find(
     t => t.name.toLowerCase() === q ||
          t.code.toLowerCase() === q ||
          t.name.toLowerCase().includes(q) ||
@@ -42,9 +48,10 @@ function buildDaySlots(tenant) {
 function createToolHandlers({ store, tenant: defaultTenant, events }) {
   const bus = events || { emit: () => {} };
   const handlers = {
-    async list_available_tests() {
+    async list_available_tests(_args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
       return {
-        tests: TEST_CATALOG.map(t => ({ name: t.name, duration_minutes: t.duration_min })),
+        tests: catalogFor(tenant).map(t => ({ name: t.name, duration_minutes: t.duration_min })),
       };
     },
 
@@ -60,14 +67,18 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
         return { error: 'Invalid time_slot. Expected HH:MM on a 30-minute boundary.' };
       }
 
-      const taken = await store.bookingsOn(tenant.id, date);
+      const [taken, blocked] = await Promise.all([
+        store.bookingsOn(tenant.id, date),
+        store.blockedSlotsOn(tenant.id, date),
+      ]);
       const countBySlot = {};
       for (const b of taken) {
         countBySlot[b.time_slot] = (countBySlot[b.time_slot] || 0) + 1;
       }
+      const blockedSet = new Set(blocked);
 
       const open = wanted.filter(
-        s => allSlots.includes(s) && (countBySlot[s] || 0) < tenant.slotCapacity
+        s => allSlots.includes(s) && !blockedSet.has(s) && (countBySlot[s] || 0) < tenant.slotCapacity
       );
 
       return {
@@ -87,15 +98,21 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
       }
       if (!patient_name?.trim()) return { error: 'patient_name is required.' };
 
-      const canonicalTest = normalizeTestType(test_type);
+      const catalog = catalogFor(tenant);
+      const canonicalTest = normalizeTestType(test_type, catalog);
       if (!canonicalTest) {
         return {
-          error: `Unknown test "${test_type}". Offer the caller one of: ${TEST_CATALOG.map(t => t.name).join(', ')}.`,
+          error: `Unknown test "${test_type}". Offer the caller one of: ${catalog.map(t => t.name).join(', ')}.`,
         };
       }
 
       const phone = (phone_number || ctx.callerPhone || '').replace(/^whatsapp:/, '').trim();
       if (!phone) return { error: 'phone_number is required.' };
+
+      const blocked = await store.blockedSlotsOn(tenant.id, date);
+      if (blocked.includes(time_slot)) {
+        return { error: `The ${time_slot} slot on ${date} is not available for booking. Offer a nearby open slot.` };
+      }
 
       const booked = await store.countBookings(tenant.id, date, time_slot);
       if (booked >= tenant.slotCapacity) {
@@ -136,6 +153,66 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
         test_type: canonicalTest,
         date,
         time_slot,
+        lab_name: tenant.labName,
+      };
+    },
+
+    async find_my_appointments(_args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
+      const phone = (ctx.callerPhone || '').replace(/^whatsapp:/, '').trim();
+      if (!phone) return { appointments: [], note: 'No caller ID available for this conversation.' };
+
+      const today = (ctx.now || new Date()).toISOString().split('T')[0];
+      const rows = await store.findUpcomingAppointments(tenant.id, phone, today);
+      return {
+        appointments: rows.map(a => ({
+          booking_id: a.id,
+          test_type: a.test_type,
+          date: a.date,
+          time_slot: a.time_slot,
+        })),
+        note: rows.length
+          ? undefined
+          : 'No upcoming appointments found for this phone number.',
+      };
+    },
+
+    async cancel_appointment(args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
+      const phone = (ctx.callerPhone || '').replace(/^whatsapp:/, '').trim();
+      const bookingId = Number(args.booking_id);
+      if (!Number.isInteger(bookingId)) {
+        return { error: 'booking_id must be a number from find_my_appointments.' };
+      }
+
+      // Ownership check: the id must be among the CALLER's own upcoming
+      // appointments (matched by caller ID) — ids can't be guessed to
+      // cancel someone else's booking.
+      const today = (ctx.now || new Date()).toISOString().split('T')[0];
+      const mine = await store.findUpcomingAppointments(tenant.id, phone, today);
+      const target = mine.find(a => a.id === bookingId);
+      if (!target) {
+        return { error: 'That booking was not found among this caller\'s upcoming appointments. Use find_my_appointments first.' };
+      }
+
+      await store.updateAppointmentStatus(tenant.id, bookingId, 'cancelled');
+      safeLog(`🗑️ Booking #${bookingId} cancelled — ${target.test_type} ${target.date} ${target.time_slot} [${tenant.id}]`);
+
+      bus.emit('booking.cancelled', { channel: ctx.channel, phone, tenantId: tenant.id }, {
+        booking_id: bookingId,
+        test_type: target.test_type,
+        date: target.date,
+        time_slot: target.time_slot,
+        status: 'cancelled',
+        summary: `${target.test_type} on ${target.date} at ${target.time_slot} cancelled over ${ctx.channel || 'phone'}.`,
+      });
+
+      return {
+        cancelled: true,
+        booking_id: bookingId,
+        test_type: target.test_type,
+        date: target.date,
+        time_slot: target.time_slot,
         lab_name: tenant.labName,
       };
     },

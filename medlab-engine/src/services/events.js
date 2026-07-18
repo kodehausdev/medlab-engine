@@ -19,6 +19,13 @@
 //   guardrail.redacted → { tool, code, status: "guardrail_redacted", summary }
 //     Deliberately carries NO caller content and NO matched health-history term —
 //     only the fact that the compliance layer intercepted something.
+//   emergency.detected → { status: "emergency_redirected", summary }
+//     Scripted 911 redirect fired. Same posture: no caller content, no
+//     matched term — only the fact of the redirect.
+//   optout.received / optout.restored → { status, summary }
+//     TCPA/CTIA keyword opt-out honored (or reversed) on WhatsApp.
+//   booking.cancelled → { booking_id, test_type, date, time_slot,
+//                         status: "cancelled", summary }
 
 const { redactObject } = require('../compliance/redact');
 
@@ -28,7 +35,12 @@ function phoneTail(phone) {
 }
 
 function emptyCounters() {
-  return { calls_answered: 0, bookings_confirmed: 0, guardrail_events: 0 };
+  return {
+    calls_answered: 0,
+    bookings_confirmed: 0,
+    guardrail_events: 0,
+    emergency_events: 0,
+  };
 }
 
 function createEventBus({ tenant, bufferSize = 50 } = {}) {
@@ -48,6 +60,7 @@ function createEventBus({ tenant, bufferSize = 50 } = {}) {
       if (type === 'call.answered') counters.calls_answered++;
       else if (type === 'booking.confirmed') counters.bookings_confirmed++;
       else if (type === 'guardrail.redacted') counters.guardrail_events++;
+      else if (type === 'emergency.detected') counters.emergency_events++;
     }
   }
 

@@ -46,6 +46,7 @@ const EMPTY_COUNTERS: Counters = {
   calls_answered: 0,
   bookings_confirmed: 0,
   guardrail_events: 0,
+  emergency_events: 0,
 };
 
 const DashboardContext = createContext<DashboardContextValue>({
@@ -105,6 +106,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
             c.bookings_confirmed + (ev.type === "booking.confirmed" ? 1 : 0),
           guardrail_events:
             c.guardrail_events + (ev.type === "guardrail.redacted" ? 1 : 0),
+          emergency_events:
+            c.emergency_events + (ev.type === "emergency.detected" ? 1 : 0),
         }));
       }
     };
@@ -124,10 +127,11 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     const hydrateFromDb = async () => {
       const sb = supabase;
       if (!sb || !authTenant) return;
-      const [answered, booked, guarded, rows] = await Promise.all([
+      const [answered, booked, guarded, emergencies, rows] = await Promise.all([
         sb.from("audit_events").select("id", { count: "exact", head: true }).eq("type", "call.answered"),
         sb.from("audit_events").select("id", { count: "exact", head: true }).eq("type", "booking.confirmed"),
         sb.from("audit_events").select("id", { count: "exact", head: true }).eq("type", "guardrail.redacted"),
+        sb.from("audit_events").select("id", { count: "exact", head: true }).eq("type", "emergency.detected"),
         sb.from("audit_events").select("*").order("id", { ascending: false }).limit(100),
       ]);
       if (disposed) return;
@@ -135,6 +139,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         calls_answered: answered.count ?? 0,
         bookings_confirmed: booked.count ?? 0,
         guardrail_events: guarded.count ?? 0,
+        emergency_events: emergencies.count ?? 0,
       });
       setEvents(((rows.data as AuditRow[]) ?? []).map(eventFromAuditRow));
 
@@ -157,6 +162,8 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
                 c.bookings_confirmed + (row.type === "booking.confirmed" ? 1 : 0),
               guardrail_events:
                 c.guardrail_events + (row.type === "guardrail.redacted" ? 1 : 0),
+              emergency_events:
+                c.emergency_events + (row.type === "emergency.detected" ? 1 : 0),
             }));
           }
         )

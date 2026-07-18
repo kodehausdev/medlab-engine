@@ -7,7 +7,11 @@ export const ENGINE_URL =
 export type EventType =
   | "call.answered"
   | "booking.confirmed"
-  | "guardrail.redacted";
+  | "booking.cancelled"
+  | "guardrail.redacted"
+  | "emergency.detected"
+  | "optout.received"
+  | "optout.restored";
 
 export interface DashboardEvent {
   id: string; // "evt-7" — monotonic per engine process
@@ -33,6 +37,13 @@ export interface Counters {
   calls_answered: number;
   bookings_confirmed: number;
   guardrail_events: number;
+  emergency_events: number;
+}
+
+export interface TestCatalogEntry {
+  code: string;
+  name: string;
+  duration_min: number;
 }
 
 export interface EngineState {
@@ -47,6 +58,11 @@ export interface EngineState {
     onboarding_state?: string;
     whatsapp_number?: string | null;
     subscription_status?: string;
+    timezone?: string;
+    // null/empty = the engine's hardcoded default six tests (schemas.js).
+    test_catalog?: TestCatalogEntry[] | null;
+    notify_email?: string | null;
+    notify_sms_number?: string | null;
   };
   counters: Counters;
   recent: DashboardEvent[];

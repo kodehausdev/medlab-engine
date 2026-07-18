@@ -14,6 +14,8 @@ const { createToolHandlers } = require('../services/tools/handlers');
 const { createEventBus } = require('../services/events');
 const { createStore } = require('../db/client');
 const { safeLog } = require('../compliance/hipaa');
+const { containsEmergency, emergencyScript } = require('../compliance/emergency');
+const { pageEmergency: realPageEmergency } = require('../services/notify');
 const config = require('../config');
 
 const TENANT_CACHE_TTL_MS = 60 * 1000;
@@ -26,6 +28,9 @@ function createEngine(overrides = {}) {
   const defaultTenant = overrides.tenant || config.tenant;
   const store = overrides.store || createStore();
   const events = overrides.events || createEventBus({ tenant: defaultTenant });
+  // Injectable like store/events/generateFn — tests assert paging was
+  // attempted without making real Resend/Twilio calls.
+  const pageEmergency = overrides.notify || realPageEmergency;
   const sessions = createSessionStore();
   const toolExecutor = createToolHandlers({ store, tenant: defaultTenant, events });
   const gemini = createGeminiEngine({
@@ -123,7 +128,8 @@ function createEngine(overrides = {}) {
     };
 
     // First turn of a fresh session = a new answered call/conversation.
-    if (session.history.length === 0) {
+    const firstTurn = session.history.length === 0;
+    if (firstTurn) {
       events.emit('call.answered', {
         channel,
         phone: ctx.callerPhone,
@@ -131,10 +137,67 @@ function createEngine(overrides = {}) {
       });
     }
 
+    // Hard emergency gate — model-independent, checked before Gemini sees
+    // the turn. Scripted 911 redirect; the caller's text never enters
+    // session history and no tools run. Fail-safe by design: a receptionist
+    // must never triage.
+    const emergencyHit = containsEmergency(text);
+    if (emergencyHit) {
+      safeLog(`🚨 emergency term detected (${channel}) — redirected to 911`);
+      events.emit('emergency.detected', {
+        channel,
+        phone: ctx.callerPhone,
+        tenantId: tenant.id,
+      }, {
+        status: 'emergency_redirected',
+        summary:
+          'Caller language suggested a possible medical emergency. ' +
+          'Scripted 911/ER redirect delivered; no booking action taken.',
+      });
+      // Fire-and-forget: the redirect above is already decided and about to
+      // be delivered — paging must never delay or fail the caller's turn.
+      // pageEmergency swallows its own send errors (just a safeLog).
+      pageEmergency(tenant, { channel, phone: ctx.callerPhone }).catch(() => {});
+      return {
+        reply: emergencyScript(channel),
+        bookedNow: false,
+        emergency: true,
+        session,
+        tenant,
+      };
+    }
+
+    // Agency-side kill switch (Mission Control's "Pause AI" toggle,
+    // tenants.ai_paused). Checked AFTER the emergency gate on purpose — a
+    // paused business still can't be allowed to leave a caller with a
+    // possible medical emergency unhandled. Everything else (bookings,
+    // cancellations) stops until an operator resumes it.
+    if (tenant.aiPaused) {
+      // No extra events.emit here — the firstTurn block above already
+      // emitted call.answered for this turn if it's a new conversation;
+      // emitting it again would double-count every paused first message.
+      safeLog(`⏸️  AI paused for tenant ${tenant.id} — declined to book (${channel})`);
+      return {
+        reply:
+          `Thanks for reaching out to ${tenant.labName}. Our AI assistant is temporarily ` +
+          `unavailable — please call the office directly and our team will help you.`,
+        bookedNow: false,
+        session,
+        tenant,
+      };
+    }
+
     const { reply, bookedNow } = await gemini.runTurn(session, text, ctx);
     if (bookedNow) session.completed = true;
 
-    return { reply, bookedNow, session, tenant };
+    // Proactive AI disclosure on the first text reply of a conversation —
+    // deterministic, not left to the model, on every text channel (SMS,
+    // WhatsApp). Voice discloses in its greeting instead.
+    const disclosed = firstTurn && channel !== 'voice'
+      ? `You're chatting with ${tenant.labName}'s automated AI assistant.\n\n${reply}`
+      : reply;
+
+    return { reply: disclosed, bookedNow, session, tenant };
   }
 
   function endSession(channel, from, tenantId) {

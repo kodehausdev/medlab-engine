@@ -11,7 +11,7 @@
 
 const WebSocket = require('ws');
 const config = require('../config');
-const { functionDeclarations } = require('./tools/schemas');
+const { buildFunctionDeclarations } = require('./tools/schemas');
 const { buildSystemPrompt } = require('./gemini');
 const { safeLog } = require('../compliance/hipaa');
 
@@ -96,7 +96,7 @@ function attachLiveBridge(server, { engine }) {
             systemInstruction: {
               parts: [{ text: buildSystemPrompt(engine.tenant, todayISO) }],
             },
-            tools: [{ functionDeclarations }],
+            tools: [{ functionDeclarations: buildFunctionDeclarations(engine.tenant?.testCatalog) }],
           },
         }));
       });
