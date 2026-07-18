@@ -168,22 +168,24 @@ test('voice: full booking flow returns confirmation TwiML and persists a clean r
 // ══════════════════════════════════════════════════════════════
 // 2. WHATSAPP E2E — webhook → batcher → Gemini → booking → outbound reply
 // ══════════════════════════════════════════════════════════════
-test('whatsapp: inbound text is batched, booked, and confirmed via outbound send', async () => {
+test('whatsapp: inbound text is batched, booked, and confirmed via outbound send from the tenant\'s own WA number', async () => {
   const store = createMemoryStore();
   const generateFn = alexBookingScript();
   const engine = createEngine({ store, tenant: TENANT, generateFn, now: NOW });
   const sent = [];
   const bundle = createApp({
     engine,
-    sendWhatsApp: async (to, body) => sent.push({ to, body }),
+    sendWhatsApp: async (to, body, from) => sent.push({ to, body, from }),
     batchWindowMs: 10,
   });
   const { server, port } = await startServer(bundle);
 
   try {
     const waFrom = `whatsapp:${CALLER}`;
+    const waTo = 'whatsapp:+15005550006'; // the tenant's own registered WA number
     const res = await postForm(port, '/webhook/whatsapp', {
       From: waFrom,
+      To: waTo,
       Body: ALEX_UTTERANCE,
       MessageSid: 'SM_test_1',
     });
@@ -192,6 +194,10 @@ test('whatsapp: inbound text is batched, booked, and confirmed via outbound send
     await waitFor(() => sent.length >= 1);
 
     assert.equal(sent[0].to, waFrom);
+    // Replies must go out from the number the patient actually messaged, not
+    // a single shared TWILIO_WHATSAPP_NUMBER — otherwise every tenant's
+    // WhatsApp replies collide on one sender.
+    assert.equal(sent[0].from, waTo);
     assert.match(sent[0].body, /You're all set, Alex/);
     assert.match(sent[0].body, /Lipid Panel/);
 
@@ -202,7 +208,7 @@ test('whatsapp: inbound text is batched, booked, and confirmed via outbound send
 
     // Duplicate MessageSid must be ignored (Twilio retry semantics)
     await postForm(port, '/webhook/whatsapp', {
-      From: waFrom, Body: ALEX_UTTERANCE, MessageSid: 'SM_test_1',
+      From: waFrom, To: waTo, Body: ALEX_UTTERANCE, MessageSid: 'SM_test_1',
     });
     await new Promise(r => setTimeout(r, 60));
     assert.equal(store.appointments.length, 1, 'dedupe must block replayed webhook');

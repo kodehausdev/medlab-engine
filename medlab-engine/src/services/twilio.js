@@ -71,10 +71,19 @@ async function postTwilioMessage(label, to, payload) {
   return false;
 }
 
-async function sendWhatsApp(to, body) {
+/**
+ * Outbound WhatsApp. `from` is the tenant WhatsApp number the inbound
+ * message arrived on (Twilio's own `To` from the webhook, already
+ * `whatsapp:`-prefixed) — same per-tenant-sender pattern as sendSms. Falls
+ * back to the single global TWILIO_WHATSAPP_NUMBER when no `from` is given
+ * (e.g. a send with no inbound context to derive one from).
+ */
+async function sendWhatsApp(to, body, from) {
   const { whatsappNumber } = config.twilio;
   const toFormatted = to.startsWith('whatsapp:') ? to : `whatsapp:${to}`;
-  await postTwilioMessage('WA', to, { From: whatsappNumber, To: toFormatted, Body: body });
+  const fromNumber = from || whatsappNumber;
+  const fromFormatted = fromNumber.startsWith('whatsapp:') ? fromNumber : `whatsapp:${fromNumber}`;
+  await postTwilioMessage('WA', to, { From: fromFormatted, To: toFormatted, Body: body });
 }
 
 /**

@@ -30,8 +30,8 @@ function normalizeKeyword(text) {
  *   channel     — 'sms' | 'whatsapp' (session scoping, events, appointment rows)
  *   webhookPath — where Twilio posts inbound messages
  *   send(recipient, body, viaNumber) — outbound reply; viaNumber is the tenant
- *     number the inbound message arrived on, so SMS replies come from the
- *     number the patient texted (WhatsApp ignores it and uses its own sender).
+ *     number the inbound message arrived on, so both SMS and WhatsApp replies
+ *     come from the same number the patient messaged.
  */
 function createTextChannelRouter({ engine, send, channel, webhookPath, batchWindowMs = BATCH_WINDOW_MS }) {
   const router = express.Router();
