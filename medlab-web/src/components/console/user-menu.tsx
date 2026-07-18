@@ -85,16 +85,25 @@ export function UserMenu() {
             className="flex w-full items-center justify-between border-t border-slate-100 px-3.5 py-2 text-xs font-medium text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:text-slate-200 dark:hover:bg-slate-700"
           >
             <span>Dark mode</span>
-            <span
-              className={`relative h-4.5 w-8 flex-none rounded-full transition-colors ${
-                theme === "dark" ? "bg-indigo-600" : "bg-slate-300"
-              }`}
-            >
+            <span className="flex items-center gap-1.5">
               <span
-                className={`absolute top-0.5 size-3.5 rounded-full bg-white transition-transform ${
-                  theme === "dark" ? "translate-x-4" : "translate-x-0.5"
+                className={`font-mono text-[10px] font-semibold ${
+                  theme === "dark" ? "text-indigo-600 dark:text-indigo-400" : "text-slate-400"
                 }`}
-              />
+              >
+                {theme === "dark" ? "On" : "Off"}
+              </span>
+              <span
+                className={`relative h-4.5 w-8 flex-none rounded-full transition-colors ${
+                  theme === "dark" ? "bg-indigo-600" : "bg-slate-300"
+                }`}
+              >
+                <span
+                  className={`absolute top-0.5 size-3.5 rounded-full bg-white transition-transform ${
+                    theme === "dark" ? "translate-x-4" : "translate-x-0.5"
+                  }`}
+                />
+              </span>
             </span>
           </button>
           {user ? (
