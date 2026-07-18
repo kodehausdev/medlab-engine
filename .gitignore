@@ -1,4 +1,5 @@
 node_modules/
+animations/out/
 .env
 .env.local
 *.log
@@ -6,3 +7,5 @@ node_modules/
 .ngrok.exe.old
 .claude/
 ngrok.exe
+CLAUDE.md
+.vercel
