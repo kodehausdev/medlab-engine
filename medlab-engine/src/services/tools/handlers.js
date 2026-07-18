@@ -5,15 +5,21 @@
 const {
   guardToolArgs, sanitizeAppointment, ComplianceError, safeLog,
 } = require('../../compliance/hipaa');
-const { TOOL_ARG_WHITELIST, TEST_CATALOG } = require('./schemas');
+const { TOOL_ARG_WHITELIST, DEFAULT_TEST_CATALOG } = require('./schemas');
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
 const SLOT_RE = /^([01]\d|2[0-3]):(00|30)$/;
 
-function normalizeTestType(input) {
+// Tenants who haven't customized their catalog (tenants.test_catalog is
+// null/empty) get the default six tests — see schemas.js.
+function catalogFor(tenant) {
+  return tenant?.testCatalog && tenant.testCatalog.length ? tenant.testCatalog : DEFAULT_TEST_CATALOG;
+}
+
+function normalizeTestType(input, catalog = DEFAULT_TEST_CATALOG) {
   if (!input) return null;
   const q = input.trim().toLowerCase();
-  const hit = TEST_CATALOG.find(
+  const hit = catalog.find(
     t => t.name.toLowerCase() === q ||
          t.code.toLowerCase() === q ||
          t.name.toLowerCase().includes(q) ||
@@ -42,9 +48,10 @@ function buildDaySlots(tenant) {
 function createToolHandlers({ store, tenant: defaultTenant, events }) {
   const bus = events || { emit: () => {} };
   const handlers = {
-    async list_available_tests() {
+    async list_available_tests(_args, ctx = {}) {
+      const tenant = ctx.tenant || defaultTenant;
       return {
-        tests: TEST_CATALOG.map(t => ({ name: t.name, duration_minutes: t.duration_min })),
+        tests: catalogFor(tenant).map(t => ({ name: t.name, duration_minutes: t.duration_min })),
       };
     },
 
@@ -91,10 +98,11 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
       }
       if (!patient_name?.trim()) return { error: 'patient_name is required.' };
 
-      const canonicalTest = normalizeTestType(test_type);
+      const catalog = catalogFor(tenant);
+      const canonicalTest = normalizeTestType(test_type, catalog);
       if (!canonicalTest) {
         return {
-          error: `Unknown test "${test_type}". Offer the caller one of: ${TEST_CATALOG.map(t => t.name).join(', ')}.`,
+          error: `Unknown test "${test_type}". Offer the caller one of: ${catalog.map(t => t.name).join(', ')}.`,
         };
       }
 

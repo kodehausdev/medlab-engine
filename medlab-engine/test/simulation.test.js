@@ -365,6 +365,31 @@ test('tools: blocked windows stop the AI from offering or booking a slot, withou
   assert.equal(store.appointments[0].id, pre.booking_id);
 });
 
+test('tools: a per-tenant test catalog overrides the default six tests', async () => {
+  const customTenant = {
+    ...TENANT,
+    testCatalog: [{ code: 'X_RAY', name: 'Chest X-Ray', duration_min: 20 }],
+  };
+  const exec = createToolHandlers({ store: createMemoryStore(), tenant: customTenant });
+
+  const list = await exec.execute('list_available_tests', {}, {});
+  assert.deepEqual(list.tests, [{ name: 'Chest X-Ray', duration_minutes: 20 }]);
+
+  // A test that only exists in the DEFAULT catalog is unknown to this tenant.
+  const rejected = await exec.execute('book_appointment', {
+    patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '09:00',
+  }, {});
+  assert.match(rejected.error, /Unknown test/);
+  assert.match(rejected.error, /Chest X-Ray/);
+
+  const ok = await exec.execute('book_appointment', {
+    patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'x-ray', date: THURSDAY, time_slot: '09:00',
+  }, {});
+  assert.equal(ok.test_type, 'Chest X-Ray');
+});
+
 test('tools: fuzzy test-type matching and validation errors', async () => {
   const exec = createToolHandlers({ store: createMemoryStore(), tenant: TENANT });
 

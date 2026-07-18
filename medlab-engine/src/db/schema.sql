@@ -20,7 +20,11 @@ create table if not exists tenants (
     -- payment_pending | provisioning_pending_number | provisioning_active | live_active
     -- self-serve signup starts at payment_pending; hand-provisioned/legacy
     -- tenants default straight to live_active (see migrations/0004)
+  test_catalog jsonb,                     -- null/empty = default catalog (see schemas.js)
+  notify_email text,                      -- recipient contacts for future emergency paging (unused so far)
+  notify_sms_number text,
   created_at timestamptz default now()
+    -- (Existing databases: apply migrations/0010_tenant_test_catalog_notify.sql instead.)
 );
 
 -- Single-tenant MVP seed — matches the .env defaults. Multi-tenant onboarding

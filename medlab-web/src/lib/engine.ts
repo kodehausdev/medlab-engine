@@ -40,6 +40,12 @@ export interface Counters {
   emergency_events: number;
 }
 
+export interface TestCatalogEntry {
+  code: string;
+  name: string;
+  duration_min: number;
+}
+
 export interface EngineState {
   tenant: {
     id: string;
@@ -53,6 +59,10 @@ export interface EngineState {
     whatsapp_number?: string | null;
     subscription_status?: string;
     timezone?: string;
+    // null/empty = the engine's hardcoded default six tests (schemas.js).
+    test_catalog?: TestCatalogEntry[] | null;
+    notify_email?: string | null;
+    notify_sms_number?: string | null;
   };
   counters: Counters;
   recent: DashboardEvent[];

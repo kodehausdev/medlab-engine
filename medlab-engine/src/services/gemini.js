@@ -8,7 +8,7 @@
 
 const { GoogleGenAI } = require('@google/genai');
 const config = require('../config');
-const { functionDeclarations } = require('./tools/schemas');
+const { buildFunctionDeclarations } = require('./tools/schemas');
 const { safeLog } = require('../compliance/hipaa');
 const { compressHistory } = require('./session');
 
@@ -74,7 +74,7 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
     return client;
   }
 
-  async function generate(contents, systemInstruction) {
+  async function generate(contents, systemInstruction, testCatalog) {
     if (generateFn) return generateFn(contents, systemInstruction);
 
     const response = await getClient().models.generateContent({
@@ -82,7 +82,7 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
       contents,
       config: {
         systemInstruction,
-        tools: [{ functionDeclarations }],
+        tools: [{ functionDeclarations: buildFunctionDeclarations(testCatalog) }],
       },
     });
     const calls = response.functionCalls || [];
@@ -103,7 +103,8 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
     const todayISO = (ctx.now || new Date()).toISOString().split('T')[0];
     // Multi-tenant: the conversation's tenant rides in ctx; the constructor
     // tenant is the single-tenant fallback.
-    const systemInstruction = buildSystemPrompt(ctx.tenant || tenant, todayISO);
+    const activeTenant = ctx.tenant || tenant;
+    const systemInstruction = buildSystemPrompt(activeTenant, todayISO);
 
     session.history.push({ role: 'user', parts: [{ text: userText }] });
     compressHistory(session);
@@ -111,7 +112,7 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
     let bookedNow = false;
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
-      const { text, functionCalls } = await generate(session.history, systemInstruction);
+      const { text, functionCalls } = await generate(session.history, systemInstruction, activeTenant.testCatalog);
 
       if (!functionCalls || functionCalls.length === 0) {
         const reply = (text || '').trim() ||

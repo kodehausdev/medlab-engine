@@ -109,6 +109,14 @@ function mapTenantRow(row) {
     // was silently dropped here, so the engine never actually knew a tenant
     // had been paused (see core/engine.js's processTurn pause gate).
     aiPaused: row.ai_paused || false,
+    // Per-tenant test catalog, console-editable (Settings). Null/empty falls
+    // back to schemas.js's DEFAULT_TEST_CATALOG — see tools/handlers.js's
+    // catalogFor().
+    testCatalog: row.test_catalog || null,
+    // Where #20 (emergency paging) will send to, once wired up. Just
+    // plumbing for now — nothing reads these yet.
+    notifyEmail: row.notify_email || null,
+    notifySmsNumber: row.notify_sms_number || null,
   };
 }
 
