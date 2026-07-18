@@ -14,6 +14,9 @@ export interface CallerTenant {
   onboarding_state: string;
   subscription_status: string;
   whatsapp_number: string | null;
+  open_hour: number;
+  close_hour: number;
+  slot_capacity: number;
 }
 
 export interface Caller {
@@ -59,7 +62,7 @@ export async function getCallerTenant(req: Request): Promise<CallerResult> {
   const { data: tenant, error: tenantError } = await admin
     .from("tenants")
     .select(
-      "id, lab_name, stripe_customer_id, stripe_payment_method_id, onboarding_state, subscription_status, whatsapp_number"
+      "id, lab_name, stripe_customer_id, stripe_payment_method_id, onboarding_state, subscription_status, whatsapp_number, open_hour, close_hour, slot_capacity"
     )
     .eq("id", profile.tenant_id)
     .single();

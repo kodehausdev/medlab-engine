@@ -9,11 +9,13 @@ const config = require('../config');
 function createMemoryStore() {
   const appointments = [];
   const auditEvents = [];
+  const blocks = []; // { tenant_id, date, time_slot, reason }
   const optOuts = new Set(); // `${tenantId}|${phone}`
   return {
     kind: 'memory',
     appointments, // exposed for test assertions
     auditEvents,  // exposed for test assertions
+    blocks,       // exposed for tests to inject blocked slots directly
 
     async setOptOut(tenantId, phone, optedOut) {
       const k = `${tenantId}|${phone}`;
@@ -51,6 +53,12 @@ function createMemoryStore() {
       return appointments.filter(
         a => a.tenant_id === tenantId && a.date === date && a.status === 'confirmed'
       );
+    },
+
+    async blockedSlotsOn(tenantId, date) {
+      return blocks
+        .filter(b => b.tenant_id === tenantId && b.date === date)
+        .map(b => b.time_slot);
     },
 
     async findUpcomingAppointments(tenantId, phone, fromDate) {
@@ -180,6 +188,15 @@ function createSupabaseStore() {
         .eq('tenant_id', tenantId).eq('date', date).eq('status', 'confirmed');
       if (error) throw new Error(`Supabase select failed: ${error.message}`);
       return data || [];
+    },
+
+    async blockedSlotsOn(tenantId, date) {
+      const { data, error } = await supabase
+        .from('schedule_blocks')
+        .select('time_slot')
+        .eq('tenant_id', tenantId).eq('date', date);
+      if (error) throw new Error(`Supabase select failed: ${error.message}`);
+      return (data || []).map(r => r.time_slot);
     },
 
     async findUpcomingAppointments(tenantId, phone, fromDate) {

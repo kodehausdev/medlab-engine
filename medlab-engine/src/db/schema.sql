@@ -45,6 +45,24 @@ create table if not exists appointments (
 create index if not exists idx_appointments_slot
   on appointments (tenant_id, date, time_slot) where status = 'confirmed';
 
+-- Blocked scheduling windows (lunch, maintenance, holidays…) — a hold on new
+-- capacity, not a cancellation of existing bookings. Written by the console
+-- (service-role), read by the engine to stop offering/accepting the slot.
+-- (Existing databases: apply migrations/0009_schedule_blocks.sql instead.)
+create table if not exists schedule_blocks (
+  id bigint generated always as identity primary key,
+  tenant_id text not null references tenants(id),
+  date date not null,
+  time_slot text not null,                -- 'HH:MM' 24h, matches appointments.time_slot
+  reason text,
+  created_by uuid,                        -- profiles.user_id of the operator who blocked it
+  created_at timestamptz default now(),
+  unique (tenant_id, date, time_slot)
+);
+
+create index if not exists idx_schedule_blocks_day
+  on schedule_blocks (tenant_id, date);
+
 -- TCPA/CTIA opt-out registry: STOP keywords honored deterministically
 -- (never routed through the model), recorded per (tenant, phone). The
 -- engine suppresses all outbound sends to opted-out numbers.
@@ -110,6 +128,7 @@ alter table tenants enable row level security;
 alter table appointments enable row level security;
 alter table audit_events enable row level security;
 alter table profiles enable row level security;
+alter table schedule_blocks enable row level security;
 -- optouts: engine-only (service role). RLS on with no policies = invisible
 -- to console users and the anon key.
 alter table optouts enable row level security;
@@ -121,6 +140,8 @@ create policy "tenant members read their tenant" on tenants
 create policy "tenant members read their appointments" on appointments
   for select to authenticated using (tenant_id = public.user_tenant_id());
 create policy "tenant members read their audit trail" on audit_events
+  for select to authenticated using (tenant_id = public.user_tenant_id());
+create policy "tenant members read their schedule blocks" on schedule_blocks
   for select to authenticated using (tenant_id = public.user_tenant_id());
 
 -- No insert/update/delete policies on purpose: the console is read-only;

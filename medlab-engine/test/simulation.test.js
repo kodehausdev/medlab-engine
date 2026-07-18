@@ -333,6 +333,38 @@ test('tools: capacity enforcement — a full slot rejects further bookings', asy
   assert.equal(store.appointments.length, 2);
 });
 
+test('tools: blocked windows stop the AI from offering or booking a slot, without touching existing bookings in it', async () => {
+  const store = createMemoryStore();
+  const exec = createToolHandlers({ store, tenant: TENANT });
+
+  // Existing confirmed booking in the slot, made before it was blocked.
+  const pre = await exec.execute('book_appointment', {
+    patient_name: 'Early Bird', phone_number: CALLER,
+    test_type: 'Blood Draw', date: THURSDAY, time_slot: '11:00',
+  }, {});
+  assert.equal(pre.confirmed, true);
+
+  store.blocks.push({ tenant_id: TENANT.id, date: THURSDAY, time_slot: '11:00', reason: 'Staff meeting' });
+
+  const avail = await exec.execute('check_availability', { date: THURSDAY, time_slot: '11:00' }, {});
+  assert.equal(avail.requested_slot_available, false);
+
+  const allDay = await exec.execute('check_availability', { date: THURSDAY }, {});
+  assert.ok(!allDay.open_slots.includes('11:00'));
+
+  const blocked = await exec.execute('book_appointment', {
+    patient_name: 'Late Comer', phone_number: CALLER,
+    test_type: 'Blood Draw', date: THURSDAY, time_slot: '11:00',
+  }, {});
+  assert.equal(blocked.confirmed, undefined);
+  assert.match(blocked.error, /not available/);
+
+  // The pre-existing booking is untouched — a block holds new capacity, it
+  // doesn't cancel what's already there.
+  assert.equal(store.appointments.length, 1);
+  assert.equal(store.appointments[0].id, pre.booking_id);
+});
+
 test('tools: fuzzy test-type matching and validation errors', async () => {
   const exec = createToolHandlers({ store: createMemoryStore(), tenant: TENANT });
 

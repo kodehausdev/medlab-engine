@@ -17,7 +17,7 @@ export interface Appointment {
   test_type: string;
   date: string; // YYYY-MM-DD
   time_slot: string; // HH:MM
-  channel: "voice" | "sms" | "whatsapp";
+  channel: "voice" | "sms" | "whatsapp" | "walk-in";
   status: "confirmed" | "cancelled" | "completed";
   created_at: string;
 }

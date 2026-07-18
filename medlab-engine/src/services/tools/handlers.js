@@ -60,14 +60,18 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
         return { error: 'Invalid time_slot. Expected HH:MM on a 30-minute boundary.' };
       }
 
-      const taken = await store.bookingsOn(tenant.id, date);
+      const [taken, blocked] = await Promise.all([
+        store.bookingsOn(tenant.id, date),
+        store.blockedSlotsOn(tenant.id, date),
+      ]);
       const countBySlot = {};
       for (const b of taken) {
         countBySlot[b.time_slot] = (countBySlot[b.time_slot] || 0) + 1;
       }
+      const blockedSet = new Set(blocked);
 
       const open = wanted.filter(
-        s => allSlots.includes(s) && (countBySlot[s] || 0) < tenant.slotCapacity
+        s => allSlots.includes(s) && !blockedSet.has(s) && (countBySlot[s] || 0) < tenant.slotCapacity
       );
 
       return {
@@ -96,6 +100,11 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
 
       const phone = (phone_number || ctx.callerPhone || '').replace(/^whatsapp:/, '').trim();
       if (!phone) return { error: 'phone_number is required.' };
+
+      const blocked = await store.blockedSlotsOn(tenant.id, date);
+      if (blocked.includes(time_slot)) {
+        return { error: `The ${time_slot} slot on ${date} is not available for booking. Offer a nearby open slot.` };
+      }
 
       const booked = await store.countBookings(tenant.id, date, time_slot);
       if (booked >= tenant.slotCapacity) {
