@@ -10,12 +10,14 @@ function createMemoryStore() {
   const appointments = [];
   const auditEvents = [];
   const blocks = []; // { tenant_id, date, time_slot, reason }
+  const leads = [];  // sunrise-demo lead capture — see services/leads.js
   const optOuts = new Set(); // `${tenantId}|${phone}`
   return {
     kind: 'memory',
     appointments, // exposed for test assertions
     auditEvents,  // exposed for test assertions
     blocks,       // exposed for tests to inject blocked slots directly
+    leads,        // exposed for test assertions
 
     async setOptOut(tenantId, phone, optedOut) {
       const k = `${tenantId}|${phone}`;
@@ -59,6 +61,12 @@ function createMemoryStore() {
       return blocks
         .filter(b => b.tenant_id === tenantId && b.date === date)
         .map(b => b.time_slot);
+    },
+
+    async insertLead(record) {
+      const row = { id: leads.length + 1, ...record };
+      leads.push(row);
+      return row;
     },
 
     async findUpcomingAppointments(tenantId, phone, fromDate) {
@@ -117,6 +125,12 @@ function mapTenantRow(row) {
     // plumbing for now — nothing reads these yet.
     notifyEmail: row.notify_email || null,
     notifySmsNumber: row.notify_sms_number || null,
+    // sunrise-demo and any future public demo line: a full prompt template
+    // (with {todayISO}/{weekday}/{calendar} placeholders) that replaces the
+    // default in gemini.js's buildSystemPrompt — see services/leads.js for
+    // the other half of demo-tenant behavior.
+    systemPromptOverride: row.system_prompt_override || null,
+    isDemoTenant: row.is_demo_tenant || false,
   };
 }
 
@@ -205,6 +219,17 @@ function createSupabaseStore() {
         .eq('tenant_id', tenantId).eq('date', date);
       if (error) throw new Error(`Supabase select failed: ${error.message}`);
       return (data || []).map(r => r.time_slot);
+    },
+
+    // Mission Control's sales-pipeline table (medlab-engine/src/db/migrations
+    // /0006_mission_control.sql) — not part of this engine's own schema, but
+    // written directly since both apps share one Supabase project. See
+    // services/leads.js.
+    async insertLead(record) {
+      const { data, error } = await supabase
+        .from('leads').insert([record]).select().single();
+      if (error) throw new Error(`Supabase lead insert failed: ${error.message}`);
+      return data;
     },
 
     async findUpcomingAppointments(tenantId, phone, fromDate) {

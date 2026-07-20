@@ -986,6 +986,20 @@ test('disclosure: voice greeting and first WhatsApp reply identify the AI', asyn
   assert.match(buildSystemPrompt(TENANT, '2026-07-04'), /Never claim or imply you are human/);
 });
 
+test('demo tenant: systemPromptOverride replaces the default prompt, with the same date placeholders interpolated', () => {
+  const { buildSystemPrompt } = require('../src/services/gemini');
+  const demoTenant = {
+    ...TENANT,
+    systemPromptOverride: 'Today is {todayISO}, a {weekday}. Next week: {calendar}. You are Kesa.',
+  };
+  const prompt = buildSystemPrompt(demoTenant, '2026-07-04');
+  assert.equal(prompt, 'Today is 2026-07-04, a Saturday. Next week: Sunday = 2026-07-05, Monday = 2026-07-06, Tuesday = 2026-07-07, Wednesday = 2026-07-08, Thursday = 2026-07-09, Friday = 2026-07-10, Saturday = 2026-07-11. You are Kesa.');
+  assert.doesNotMatch(prompt, /the phone\/text receptionist/, 'the default template must not leak through');
+
+  // A tenant with no override still gets the normal prompt.
+  assert.match(buildSystemPrompt(TENANT, '2026-07-04'), /the phone\/text receptionist/);
+});
+
 test('tools: cancel flow — find_my_appointments + cancel_appointment frees the slot', async () => {
   const store = createMemoryStore();
   await store.insertAppointment({
@@ -1129,4 +1143,139 @@ test('sms: the TCPA STOP gate covers SMS through the shared text-channel router'
   } finally {
     server.close();
   }
+});
+
+// ══════════════════════════════════════════════════════════════
+// 12. SUNRISE-DEMO — public demo tenant, lead capture
+// ══════════════════════════════════════════════════════════════
+const { classifyDemoOutcome, captureDemoLead, DEMO_TEST_NAME } = require('../src/services/leads');
+
+test('demo lead: classifyDemoOutcome — booked the demo, booked something else, just asked, or nothing worth logging', () => {
+  const booked = { completed: true, facts: { test_type: DEMO_TEST_NAME }, history: [] };
+  assert.equal(classifyDemoOutcome(booked), 'booked_demo');
+
+  const bookedOther = { completed: true, facts: { test_type: 'Blood Draw' }, history: [] };
+  assert.equal(classifyDemoOutcome(bookedOther), 'tested_only');
+
+  const justAsked = { completed: false, facts: {}, history: [{}, {}, {}] };
+  assert.equal(classifyDemoOutcome(justAsked), 'requested_info');
+
+  const barelyConnected = { completed: false, facts: {}, history: [{}] };
+  assert.equal(classifyDemoOutcome(barelyConnected), null, 'one history entry is not a real signal');
+
+  assert.equal(classifyDemoOutcome(null), null);
+});
+
+test('demo lead: captureDemoLead writes a real Mission Control lead for a booked demo', async () => {
+  const store = createMemoryStore();
+  const tenant = { id: 'sunrise-demo', isDemoTenant: true, labName: 'Sunrise Diagnostics' };
+  const session = {
+    from: CALLER,
+    completed: true,
+    facts: { test_type: DEMO_TEST_NAME, date: '2026-07-09', time_slot: '10:00' },
+    history: [{}, {}, {}, {}],
+  };
+
+  await captureDemoLead(store, tenant, session);
+
+  assert.equal(store.leads.length, 1);
+  assert.equal(store.leads[0].stage, 'demo_scheduled');
+  assert.equal(store.leads[0].phone, CALLER);
+  assert.match(store.leads[0].note, /outcome: booked_demo/);
+  assert.equal(store.leads[0].next_at, new Date('2026-07-09T10:00:00').toISOString());
+});
+
+test('demo lead: a caller who tries a fake booking but never books time with Amanda lands in "new", not "demo_scheduled"', async () => {
+  const store = createMemoryStore();
+  const tenant = { id: 'sunrise-demo', isDemoTenant: true, labName: 'Sunrise Diagnostics' };
+  const session = {
+    from: CALLER, completed: true,
+    facts: { test_type: 'Lipid Panel', date: '2026-07-09', time_slot: '10:00' },
+    history: [{}, {}],
+  };
+
+  await captureDemoLead(store, tenant, session);
+
+  assert.equal(store.leads[0].stage, 'new');
+  assert.match(store.leads[0].note, /outcome: tested_only/);
+  assert.equal(store.leads[0].next_at, null, 'only a real Amanda booking sets next_at');
+});
+
+test('demo lead: a session with no real signal captures nothing', async () => {
+  const store = createMemoryStore();
+  const tenant = { id: 'sunrise-demo', isDemoTenant: true };
+  await captureDemoLead(store, tenant, { from: CALLER, completed: false, facts: {}, history: [] });
+  assert.equal(store.leads.length, 0);
+});
+
+test('demo lead: end-to-end through the engine — booking the demo slot and hanging up captures a lead', async () => {
+  const store = createMemoryStore();
+  const demoTenant = {
+    id: 'sunrise-demo', labName: 'Sunrise Diagnostics', timezone: 'America/New_York',
+    openHour: 9, closeHour: 17, slotCapacity: 1, isDemoTenant: true,
+    systemPromptOverride: 'You are Kesa for Sunrise Diagnostics. Today is {todayISO}.',
+    testCatalog: [{ code: 'PRODUCT_DEMO', name: DEMO_TEST_NAME, duration_min: 15 }],
+  };
+  const generateFn = scriptedModel([
+    {
+      functionCalls: [{
+        name: 'book_appointment',
+        args: {
+          patient_name: 'Prospect Pat', phone_number: CALLER, test_type: DEMO_TEST_NAME,
+          date: THURSDAY, time_slot: '10:00',
+        },
+      }],
+    },
+  ]);
+  const engine = createEngine({ store, tenant: demoTenant, generateFn, now: NOW });
+
+  const { tenant, session } = await engine.processTurn({
+    channel: 'voice', from: CALLER, text: `book me the ${DEMO_TEST_NAME}`,
+  });
+  assert.equal(session.completed, true);
+
+  engine.endSession('voice', CALLER, tenant);
+  await new Promise((r) => setTimeout(r, 0)); // let the fire-and-forget capture land
+
+  assert.equal(store.leads.length, 1);
+  assert.equal(store.leads[0].stage, 'demo_scheduled');
+});
+
+test('demo lead: a real patient tenant ending a session never touches leads', async () => {
+  const store = createMemoryStore();
+  const engine = createEngine({ store, tenant: TENANT, generateFn: scriptedModel([{ text: 'ok' }]), now: NOW });
+
+  const { tenant } = await engine.processTurn({ channel: 'voice', from: CALLER, text: 'hi' });
+  assert.equal(tenant.isDemoTenant, undefined, 'sanity: TENANT fixture has no demo flag');
+
+  engine.endSession('voice', CALLER, tenant);
+  await new Promise((r) => setTimeout(r, 0));
+
+  assert.equal(store.leads.length, 0);
+});
+
+test('demo lead: a silent hangup (no explicit end) is still captured, via the idle sweep', async () => {
+  const store = createMemoryStore();
+  const { captureDemoLead: capture } = require('../src/services/leads');
+  const sessions = createSessionStore({ ttlMs: 5 }); // short expiry for the test
+  const demoTenant = { id: 'sunrise-demo', isDemoTenant: true };
+
+  const session = sessions.get('sunrise-demo:voice', CALLER, 'sunrise-demo');
+  session.completed = true;
+  session.facts.test_type = DEMO_TEST_NAME;
+  session.facts.date = '2026-07-09';
+  session.facts.time_slot = '10:00';
+
+  // A real async wait (not a busy-wait — this test is already async, and a
+  // generous margin here is cheap) so the TTL has unambiguously lapsed.
+  await new Promise((r) => setTimeout(r, 30));
+
+  const evicted = [];
+  sessions.sweep((s) => evicted.push(s));
+  assert.equal(evicted.length, 1);
+  assert.equal(evicted[0].tenantId, 'sunrise-demo');
+
+  await capture(store, demoTenant, evicted[0]);
+  assert.equal(store.leads.length, 1);
+  assert.equal(store.leads[0].stage, 'demo_scheduled');
 });

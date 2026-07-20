@@ -16,6 +16,7 @@ const { createStore } = require('../db/client');
 const { safeLog } = require('../compliance/hipaa');
 const { containsEmergency, emergencyScript } = require('../compliance/emergency');
 const { pageEmergency: realPageEmergency } = require('../services/notify');
+const { captureDemoLead } = require('../services/leads');
 const config = require('../config');
 
 const TENANT_CACHE_TTL_MS = 60 * 1000;
@@ -69,8 +70,24 @@ function createEngine(overrides = {}) {
       .catch((err) => safeLog(`⚠️ audit persist failed: ${err.message}`));
   });
 
-  // Periodic PHI sweep of idle in-memory sessions.
-  const sweeper = setInterval(() => sessions.sweep(), 60 * 1000);
+  // A session belonging to sunrise-demo (or any future is_demo_tenant
+  // tenant) gets classified into a Mission Control lead the moment its
+  // conversation ends — whichever way that happens. Fire-and-forget: by
+  // the time this runs the caller's own turn is long finished, and a
+  // capture failure must never surface anywhere the caller can see it.
+  function maybeCaptureDemoLead(session) {
+    if (!session?.tenantId) return;
+    getTenantById(session.tenantId)
+      .then((tenant) => {
+        if (tenant?.isDemoTenant) return captureDemoLead(store, tenant, session);
+      })
+      .catch(() => {});
+  }
+
+  // Periodic PHI sweep of idle in-memory sessions. onEvict is the only
+  // chance to observe a caller who hung up without saying goodbye — see
+  // services/session.js.
+  const sweeper = setInterval(() => sessions.sweep(maybeCaptureDemoLead), 60 * 1000);
   if (sweeper.unref) sweeper.unref();
 
   // ── tenant resolution (inbound number → tenant, cached) ──────
@@ -117,7 +134,7 @@ function createEngine(overrides = {}) {
    */
   async function processTurn({ channel, from, to, text }) {
     const tenant = await resolveTenant(to);
-    const session = sessions.get(sessionScope(tenant.id, channel), from);
+    const session = sessions.get(sessionScope(tenant.id, channel), from, tenant.id);
     safeLog(`📩 [${channel}] turn from ${from} → tenant ${tenant.id}`);
 
     const ctx = {
@@ -200,8 +217,13 @@ function createEngine(overrides = {}) {
     return { reply: disclosed, bookedNow, session, tenant };
   }
 
-  function endSession(channel, from, tenantId) {
-    sessions.end(sessionScope(tenantId || defaultTenant.id, channel), from);
+  // tenant: the full resolved tenant object (not just its id) — callers
+  // already have it from processTurn's return / resolveTenant, and demo-lead
+  // classification needs isDemoTenant off it.
+  function endSession(channel, from, tenant) {
+    const tenantId = tenant?.id || defaultTenant.id;
+    const session = sessions.end(sessionScope(tenantId, channel), from);
+    if (tenant?.isDemoTenant) captureDemoLead(store, tenant, session).catch(() => {});
   }
 
   return {

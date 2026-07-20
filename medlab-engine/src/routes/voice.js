@@ -44,7 +44,7 @@ function createVoiceRouter({ engine }) {
       // Emergency gate fired: deliver the scripted 911 redirect and release
       // the line immediately — no further Gather loop.
       if (emergency) {
-        engine.endSession('voice', from, tenant.id);
+        engine.endSession('voice', from, tenant);
         return res.type('text/xml').send(sayHangupTwiml(reply));
       }
 
@@ -52,7 +52,7 @@ function createVoiceRouter({ engine }) {
       // on the model's closing turn rather than looping forever.
       if (bookedNow || (session.completed && /goodbye|bye|that's all|no thanks/i.test(speech))) {
         if (session.completed && !bookedNow) {
-          engine.endSession('voice', from, tenant.id);
+          engine.endSession('voice', from, tenant);
           return res.type('text/xml').send(sayHangupTwiml(reply));
         }
       }
