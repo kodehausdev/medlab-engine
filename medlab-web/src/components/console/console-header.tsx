@@ -101,10 +101,10 @@ export function ConsoleHeader() {
             <FlaskLogo />
             <div className="min-w-0 leading-tight">
               <div className="truncate text-sm font-bold tracking-tight">
-                {tenant?.lab_name ?? "MedLab AI"}
+                {tenant?.lab_name ?? "Ekaabo"}
               </div>
               <div className="font-mono text-[10.5px] text-slate-400">
-                AVA · CONSOLE
+                KESA · CONSOLE
               </div>
             </div>
           </div>

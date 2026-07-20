@@ -1,0 +1,352 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Ekaabo — Kesa, the AI receptionist for labs & clinics</title>
+<meta name="description" content="Kesa answers your practice's existing phone number 24/7 — voice, SMS, and WhatsApp. She books real appointments, hands anything medical to your staff, and shows every call live. $297/month flat.">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Public+Sans:ital,wght@0,400;0,500;0,600;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&display=swap" rel="stylesheet">
+<!--
+  EKAABO LANDING — standalone static site, deployed on its own domain,
+  deliberately NOT part of medlab-web (owner's call 2026-07-20: don't
+  touch medlab-web's routing). Ported from the original mockup with
+  [DEMO NUMBER] → +1 878 206 6124 (the sunrise-demo Twilio number) and
+  [EMAIL] → hi.kodehaus@gmail.com (provisional — swap for a branded
+  address once the domain exists). See CLAUDE.md for the compliance-
+  language gate this page's copy is written against; do not "fix" the
+  "built for HIPAA-grade handling" wording until that gate closes.
+-->
+<style>
+:root {
+  --ek-clay:#B4532A; --ek-clay-hover:#9C4522; --ek-clay-soft:#F3DDD2;
+  --ek-indigo:#2A3670; --ek-ink:#201F35; --ek-ink-soft:#575673;
+  --ek-cream:#FAF6EF; --ek-card:#FFFFFF; --ek-line:#E5DED2;
+  --ek-dark:#14141F; --ek-clay-dark:#E8926A;
+  --ek-display:"Instrument Serif", Georgia, serif;
+  --ek-body:"Public Sans", system-ui, sans-serif;
+  --ek-mono:"IBM Plex Mono", monospace;
+}
+* { box-sizing:border-box; }
+html { scroll-behavior:smooth; scroll-padding-top:80px; }
+@media (prefers-reduced-motion:reduce){ html{scroll-behavior:auto;} .fade{animation:none!important;} }
+body { margin:0; background:var(--ek-cream); color:var(--ek-ink); font:16px/1.65 var(--ek-body); }
+.wrap { max-width:1080px; margin:0 auto; padding:0 24px; }
+h1,h2,h3.serif { font-family:var(--ek-display); font-weight:400; }
+a { color:var(--ek-clay); }
+
+/* woven signature band — used ONCE, top of page (plus pricing card) */
+.ek-band { height:8px; background:repeating-linear-gradient(90deg,
+  var(--ek-clay) 0 26px, var(--ek-indigo) 26px 34px,
+  var(--ek-clay) 34px 60px, #D9A441 60px 66px); }
+
+/* nav */
+nav { position:sticky; top:0; z-index:20; background:rgba(250,246,239,.92); backdrop-filter:blur(8px); border-bottom:1px solid var(--ek-line); }
+.nav-in { max-width:1080px; margin:0 auto; padding:14px 24px; display:flex; align-items:center; gap:26px; }
+.ek-logo { display:flex; align-items:center; gap:10px; text-decoration:none; }
+.ek-arch { width:34px; height:34px; background:var(--ek-clay-soft); border-radius:9px; display:grid; place-items:center; }
+.ek-arch span { display:block; width:14px; height:16px; background:var(--ek-clay); border-radius:8px 8px 0 0; }
+.ek-logo .wm { font:400 21px/1 var(--ek-display); color:var(--ek-ink); }
+.nav-links { display:flex; gap:22px; margin-left:auto; align-items:center; }
+.nav-links a { font:600 14px var(--ek-body); color:var(--ek-ink-soft); text-decoration:none; }
+.nav-links a:hover { color:var(--ek-indigo); }
+.btn { display:inline-block; background:var(--ek-clay); color:#fff; border:none; border-radius:999px;
+  padding:12px 22px; font:600 15px var(--ek-body); text-decoration:none; cursor:pointer; }
+.btn:hover { background:var(--ek-clay-hover); }
+.btn.ghost { background:transparent; color:var(--ek-indigo); border:1.5px solid var(--ek-indigo); }
+.btn.ghost:hover { background:var(--ek-indigo); color:#fff; }
+@media (max-width:720px){ .nav-links a:not(.btn){ display:none; } }
+
+/* hero */
+.hero { padding:76px 0 70px; }
+.hero-grid { display:grid; grid-template-columns:1.05fr .95fr; gap:56px; align-items:center; }
+@media (max-width:860px){ .hero-grid{ grid-template-columns:1fr; } }
+.eyebrow { font:500 12px/1 var(--ek-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--ek-clay); }
+.hero h1 { font-size:clamp(38px,5.6vw,58px); line-height:1.06; margin:16px 0 18px; color:var(--ek-indigo); }
+.hero h1 em { font-style:italic; color:var(--ek-clay); }
+.hero p.lede { font-size:18px; color:var(--ek-ink-soft); max-width:52ch; margin:0 0 28px; }
+.cta-row { display:flex; gap:14px; flex-wrap:wrap; align-items:center; }
+.cta-note { font:500 12px var(--ek-mono); color:var(--ek-ink-soft); letter-spacing:.06em; }
+
+/* hero visual: a call, transcribed */
+.call-card { background:var(--ek-card); border:1px solid var(--ek-line); border-radius:16px;
+  box-shadow:0 14px 44px rgba(32,31,53,.10); padding:22px 24px; }
+.call-head { display:flex; justify-content:space-between; align-items:center; border-bottom:1px solid var(--ek-line); padding-bottom:12px; margin-bottom:16px; }
+.call-head .who { font:600 14px var(--ek-body); }
+.call-head .live { font:500 11px var(--ek-mono); letter-spacing:.12em; color:#1E6E4E; }
+.turn { margin:12px 0; max-width:92%; }
+.turn .name { font:500 10px/1 var(--ek-mono); letter-spacing:.16em; text-transform:uppercase; color:var(--ek-ink-soft); margin-bottom:5px; }
+.turn .bub { border-radius:12px; padding:10px 14px; font-size:14.5px; line-height:1.5; }
+.turn.kesa .bub { background:#F1EFFA; color:var(--ek-ink); border:1px solid #DFDCF0; }
+.turn.caller { margin-left:auto; text-align:right; }
+.turn.caller .bub { background:var(--ek-clay-soft); color:var(--ek-ink); text-align:left; }
+.turn.sys .bub { background:#EFF7F2; border:1px dashed #BFDCCB; color:#1E6E4E; font:500 12.5px var(--ek-mono); }
+.fade { animation:fadeUp .5s ease both; }
+.fade:nth-child(2){animation-delay:.15s} .fade:nth-child(3){animation-delay:.3s}
+.fade:nth-child(4){animation-delay:.45s} .fade:nth-child(5){animation-delay:.6s} .fade:nth-child(6){animation-delay:.75s}
+@keyframes fadeUp { from{opacity:0; transform:translateY(8px);} to{opacity:1; transform:none;} }
+
+/* trust strip */
+.trust { border-top:1px solid var(--ek-line); border-bottom:1px solid var(--ek-line); background:#F5F0E6; }
+.trust .wrap { display:flex; gap:10px 26px; flex-wrap:wrap; justify-content:center; padding:16px 24px; }
+.trust span { font:500 12px var(--ek-mono); letter-spacing:.08em; color:var(--ek-ink-soft); }
+.trust b { color:var(--ek-indigo); font-weight:500; }
+
+/* sections */
+section.pad { padding:84px 0; }
+.sec-eyebrow { font:500 12px/1 var(--ek-mono); letter-spacing:.2em; text-transform:uppercase; color:var(--ek-clay); }
+h2 { font-size:clamp(30px,4vw,42px); line-height:1.12; color:var(--ek-indigo); margin:14px 0 14px; }
+.sub { color:var(--ek-ink-soft); max-width:62ch; margin:0 0 42px; font-size:17px; }
+
+/* how it works */
+.steps3 { display:grid; grid-template-columns:repeat(3,1fr); gap:22px; }
+@media (max-width:820px){ .steps3{ grid-template-columns:1fr; } }
+.stepc { background:var(--ek-card); border:1px solid var(--ek-line); border-radius:16px; padding:26px; }
+.stepc .n { font:400 34px/1 var(--ek-display); color:var(--ek-clay); }
+.stepc h3 { font:600 17px var(--ek-body); margin:12px 0 8px; }
+.stepc p { font-size:15px; color:var(--ek-ink-soft); margin:0; }
+
+/* does / never */
+.duo { display:grid; grid-template-columns:1fr 1fr; gap:22px; }
+@media (max-width:820px){ .duo{ grid-template-columns:1fr; } }
+.panel { border-radius:16px; padding:30px; }
+.panel.does { background:var(--ek-card); border:1px solid var(--ek-line); }
+.panel.never { background:var(--ek-indigo); color:#EDEFF8; }
+.panel h3 { font:400 26px var(--ek-display); margin:0 0 16px; }
+.panel.never h3 { color:#fff; }
+.panel ul { margin:0; padding:0; list-style:none; }
+.panel li { padding:9px 0 9px 30px; position:relative; font-size:15.5px; border-bottom:1px solid rgba(0,0,0,.05); }
+.panel.does li { color:var(--ek-ink-soft); }
+.panel.does li::before { content:"✓"; position:absolute; left:2px; color:#1E6E4E; font-weight:700; }
+.panel.never li { border-color:rgba(255,255,255,.12); color:#C9CEE8; }
+.panel.never li::before { content:"—"; position:absolute; left:2px; color:var(--ek-clay-dark); font-weight:700; }
+.panel.never .why { margin:18px 0 0; font-size:13.5px; color:#A9B0D6; }
+
+/* dark console section */
+.dark { background:var(--ek-dark); color:#D7D7E6; }
+.dark h2 { color:#fff; }
+.dark .sub { color:#9C9CB8; }
+.shot { border:1px solid #2B2B40; border-radius:14px; background:#1B1B2A; min-height:300px;
+  display:grid; place-items:center; color:#6D6D8C; font:500 13px var(--ek-mono); letter-spacing:.1em; }
+.kpis { display:flex; gap:14px; flex-wrap:wrap; margin-top:20px; }
+.kpi { border:1px solid #2B2B40; border-radius:10px; padding:12px 16px; }
+.kpi .v { font:400 24px var(--ek-display); color:var(--ek-clay-dark); }
+.kpi .l { font:500 11px var(--ek-mono); letter-spacing:.12em; color:#8B8BA6; text-transform:uppercase; }
+
+/* pricing */
+.price-card { max-width:520px; margin:0 auto; background:var(--ek-card); border:1px solid var(--ek-line);
+  border-radius:18px; overflow:hidden; box-shadow:0 14px 44px rgba(32,31,53,.08); }
+.price-in { padding:38px 40px; text-align:center; }
+.price { font:400 64px/1 var(--ek-display); color:var(--ek-indigo); }
+.price small { font:600 16px var(--ek-body); color:var(--ek-ink-soft); }
+.price-in ul { list-style:none; margin:24px 0 26px; padding:0; text-align:left; }
+.price-in li { padding:8px 0 8px 28px; position:relative; color:var(--ek-ink-soft); font-size:15.5px; }
+.price-in li::before { content:"✓"; position:absolute; left:0; color:var(--ek-clay); font-weight:700; }
+.zero { font:500 12px var(--ek-mono); color:var(--ek-ink-soft); margin-top:12px; display:block; letter-spacing:.06em; }
+
+/* name story */
+.story { display:grid; grid-template-columns:.9fr 1.1fr; gap:48px; align-items:center; }
+@media (max-width:820px){ .story{ grid-template-columns:1fr; } }
+.story .big { font:400 clamp(44px,7vw,72px)/1 var(--ek-display); color:var(--ek-clay); }
+.story .big span { display:block; font-size:.42em; color:var(--ek-indigo); font-style:italic; margin-top:10px; }
+
+/* faq */
+details { border-bottom:1px solid var(--ek-line); padding:4px 0; }
+summary { cursor:pointer; font:600 16px var(--ek-body); padding:16px 0; color:var(--ek-ink); list-style:none; display:flex; justify-content:space-between; gap:16px; }
+summary::after { content:"+"; font:400 22px var(--ek-display); color:var(--ek-clay); }
+details[open] summary::after { content:"–"; }
+details p { margin:0 0 18px; color:var(--ek-ink-soft); max-width:70ch; }
+
+/* footer cta + footer */
+.foot-cta { background:var(--ek-indigo); color:#fff; text-align:center; padding:80px 24px; }
+.foot-cta h2 { color:#fff; margin-bottom:10px; }
+.foot-cta p { color:#C9CEE8; margin:0 0 26px; }
+.foot-cta .num { font:400 clamp(30px,5vw,44px) var(--ek-display); color:var(--ek-clay-dark); display:block; margin:8px 0 24px; }
+footer { padding:34px 24px; text-align:center; color:var(--ek-ink-soft); font-size:13px; }
+footer .fl { margin-top:8px; }
+footer a { color:var(--ek-ink-soft); text-decoration:none; margin:0 10px; }
+</style>
+</head>
+<body>
+
+<div class="ek-band"></div>
+
+<nav>
+  <div class="nav-in">
+    <a class="ek-logo" href="#"><span class="ek-arch"><span></span></span><span class="wm">ekaabo</span></a>
+    <div class="nav-links">
+      <a href="#how">How it works</a>
+      <a href="#safety">Safety</a>
+      <a href="#pricing">Pricing</a>
+      <a class="btn" href="tel:+18782066124">Call the demo line</a>
+    </div>
+  </div>
+</nav>
+
+<header class="hero">
+  <div class="wrap hero-grid">
+    <div>
+      <div class="eyebrow">AI receptionist for labs &amp; clinics</div>
+      <h1>Your phone is ringing.<br><em>Kesa already answered.</em></h1>
+      <p class="lede">Kesa answers your practice's existing number 24/7 — voice, text, and WhatsApp. She books real appointments while the patient is on the line, hands anything medical to your staff, and never takes a sick day.</p>
+      <div class="cta-row">
+        <a class="btn" href="tel:+18782066124">📞 Call Kesa now — +1 878 206 6124</a>
+        <a class="btn ghost" href="#pricing">See pricing</a>
+      </div>
+      <p class="cta-note" style="margin-top:14px;">Seriously — call her. Try to trip her up. She's expecting you.</p>
+    </div>
+    <div class="call-card" aria-label="Example conversation with Kesa">
+      <div class="call-head"><span class="who">Sunrise Diagnostics — inbound call, 7:42 PM</span><span class="live">● LIVE</span></div>
+      <div class="turn kesa fade"><div class="name">Kesa · AI</div><div class="bub">Thank you for calling Sunrise Diagnostics. This is Kesa, the AI assistant — how can I help you today?</div></div>
+      <div class="turn caller fade"><div class="name">Caller</div><div class="bub">Hi, I need a lipid panel this week… mornings only.</div></div>
+      <div class="turn kesa fade"><div class="bub">Happy to help. I have Wednesday at 8:15, Thursday at 9:00, or Friday at 8:30 — any of those work?</div></div>
+      <div class="turn caller fade"><div class="bub">Thursday at 9.</div></div>
+      <div class="turn kesa fade"><div class="bub">You're set: lipid panel, Thursday at 9:00 AM. Quick note — that test needs 12 hours fasting; water is fine. Confirmation text is on its way.</div></div>
+      <div class="turn sys fade"><div class="bub">✓ BOOKED · SMS CONFIRMATION SENT · 41 SECONDS</div></div>
+    </div>
+  </div>
+</header>
+
+<div class="trust">
+  <div class="wrap">
+    <span><b>Discloses she's AI</b> on every call</span>
+    <span><b>911 redirect</b> before anything else</span>
+    <span><b>STOP opt-outs</b> honored instantly</span>
+    <span><b>Built for HIPAA-grade</b> handling</span>
+    <span><b>Your number</b> — no new phone system</span>
+  </div>
+</div>
+
+<section class="pad" id="how">
+  <div class="wrap">
+    <div class="sec-eyebrow">How it works</div>
+    <h2>Live in days, not migrations.</h2>
+    <p class="sub">No new phone system, no software for your staff to learn, no IT project. Kesa sits on the number your patients already know.</p>
+    <div class="steps3">
+      <div class="stepc"><div class="n">1</div><h3>Forward your number</h3><p>Keep your existing line. We configure the telephony and set Kesa up for your tests, hours, chairs, and rules — white-glove, you don't touch anything.</p></div>
+      <div class="stepc"><div class="n">2</div><h3>Kesa answers everything</h3><p>Every call and text, first ring, around the clock. She books against your real availability, reschedules, cancels for verified callers, and texts confirmations.</p></div>
+      <div class="stepc"><div class="n">3</div><h3>Your team watches it happen</h3><p>Bookings, messages, and escalations stream into a live dashboard. Your front desk keeps the human work; Kesa takes the phone.</p></div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="safety" style="padding-top:0;">
+  <div class="wrap">
+    <div class="sec-eyebrow">What she does — and what she'll never do</div>
+    <h2>The guardrails are the product.</h2>
+    <p class="sub">Generic AI answering bots point a chatbot at a clinic and hope. Kesa was built for medical calls from the first line of code — which means the "never" list below is enforced by architecture, not by asking the AI nicely.</p>
+    <div class="duo">
+      <div class="panel does">
+        <h3>Kesa does</h3>
+        <ul>
+          <li>Answer every call and text instantly, 24/7, holidays included</li>
+          <li>Book appointments against your live schedule and capacity</li>
+          <li>Reschedule and cancel — for the verified caller only</li>
+          <li>Answer hours, prep, and fasting instructions per test</li>
+          <li>Text confirmations and reminders</li>
+          <li>Take messages and page your staff when it matters</li>
+        </ul>
+      </div>
+      <div class="panel never">
+        <h3>Kesa never</h3>
+        <ul>
+          <li>Gives test results — those always come from your humans</li>
+          <li>Gives medical advice or plays triage</li>
+          <li>Continues past distress — callers hear a 911/ER redirect immediately, and your staff are paged</li>
+          <li>Pretends to be human — she discloses she's AI on every call</li>
+          <li>Texts anyone who opted out</li>
+          <li>Stores conversations — the only thing saved is the appointment</li>
+        </ul>
+        <p class="why">Every "never" is enforced at the system level, below the AI. Bring your compliance person — we'll happily walk them through the architecture.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad dark">
+  <div class="wrap">
+    <div class="sec-eyebrow" style="color:var(--ek-clay-dark);">The console</div>
+    <h2>Every call, visible the second it happens.</h2>
+    <p class="sub">A live feed of answered calls, bookings, and escalations. Chair-level scheduling with walk-ins and blocked windows. A compliance page where the safety features are visible, not claimed.</p>
+    <div class="shot">[ DASHBOARD SCREENSHOT — demo tenant, dark mode ]</div>
+    <div class="kpis">
+      <div class="kpi"><div class="v">1st ring</div><div class="l">Every answer</div></div>
+      <div class="kpi"><div class="v">24/7</div><div class="l">Coverage</div></div>
+      <div class="kpi"><div class="v">Live</div><div class="l">Event feed</div></div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" id="pricing">
+  <div class="wrap">
+    <div class="sec-eyebrow">Pricing</div>
+    <h2>One number. Flat.</h2>
+    <p class="sub">No per-minute meters, no per-call credits, no contract. The busier your phone gets, the better the math gets.</p>
+    <div class="price-card">
+      <div class="ek-band" style="border-radius:0;"></div>
+      <div class="price-in">
+        <div class="price">$297<small>/month per location</small></div>
+        <ul>
+          <li>Kesa on your existing number — voice, SMS &amp; WhatsApp</li>
+          <li>Unlimited answered calls and texts, 24/7</li>
+          <li>Live dashboard, scheduling grid &amp; compliance view</li>
+          <li>White-glove setup — we configure everything</li>
+          <li>Cancel anytime</li>
+        </ul>
+        <a class="btn" href="https://medlab-web-murex.vercel.app/signup" style="width:100%;">Start your subscription</a>
+        <span class="zero">Card saved at signup · $0 today · First charge only when Kesa goes live</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<section class="pad" style="padding-top:20px;">
+  <div class="wrap story">
+    <div class="big" lang="yo">Ẹ káàbọ̀<span lang="en">— it means "welcome."</span></div>
+    <div>
+      <p class="sub" style="margin:0;">Ekaabo is the Yoruba word a good host says before anything else — and welcoming people is the entire job of a receptionist. We're a two-founder company building front-desk AI with the care that word deserves: every caller greeted, every question answered honestly, everything sensitive handed to a human. That's the standard the name holds us to.</p>
+    </div>
+  </div>
+</section>
+
+<section class="pad" style="padding-top:10px;">
+  <div class="wrap" style="max-width:760px;">
+    <div class="sec-eyebrow">Questions</div>
+    <h2>Asked on every call.</h2>
+    <details>
+      <summary>What happens when a patient asks for results or medical advice?</summary>
+      <p>Kesa takes a message and your staff calls back. Results and medical questions always come from humans — she'll say so warmly and offer what she can do instead, like booking the follow-up. It's a hard boundary enforced below the AI, not a preference.</p>
+    </details>
+    <details>
+      <summary>How do you handle patient privacy?</summary>
+      <p>Kesa is built for HIPAA-grade handling from the ground up: conversations are never stored, the only durable patient data is the appointment itself, logs are auto-redacted, and every AI action passes a compliance guard before it executes. We're happy to walk your compliance officer through the architecture — most vendors dodge that meeting; we invite it.</p>
+    </details>
+    <details>
+      <summary>Do we have to change our phone system?</summary>
+      <p>No — that's the point. Kesa works on the number your patients already call, via forwarding. No porting, no VoIP migration, no retraining your team.</p>
+    </details>
+    <details>
+      <summary>What if Kesa can't handle something?</summary>
+      <p>She takes a message, notes it for your staff, and it appears in your dashboard instantly. If a caller asks for a human, she hands off gracefully — and if the system is ever unreachable, calls simply forward per your fallback rules. She's designed to fail toward humans.</p>
+    </details>
+    <details>
+      <summary>What does setup involve?</summary>
+      <p>You sign up (card saved, $0 charged), tell us about your practice, and we configure everything white-glove — your tests, hours, chairs, prep rules, and who gets paged. Go-live is a deliberate decision we make together, and that's when billing starts. Typically days, not minutes.</p>
+    </details>
+  </div>
+</section>
+
+<div class="foot-cta">
+  <h2 class="serif">Don't take our word for it.</h2>
+  <p>Kesa's demo line is open right now — 2 a.m. included. Book a fake appointment. Try to trip her up.</p>
+  <span class="num">+1 878 206 6124</span>
+  <a class="btn" href="tel:+18782066124">Call Kesa</a>
+</div>
+
+<footer>
+  <div>© 2026 Ekaabo · Built with care on two continents</div>
+  <div class="fl"><a href="https://medlab-web-murex.vercel.app/login">Sign in</a> · <a href="mailto:hi.kodehaus@gmail.com">Contact</a> · <a href="#">Privacy</a> · <a href="#">Terms</a></div>
+</footer>
+
+</body>
+</html>

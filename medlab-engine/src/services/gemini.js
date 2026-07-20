@@ -26,6 +26,20 @@ function buildSystemPrompt(tenant, todayISO) {
     const d = new Date(base.getTime() + i * 86400000);
     calendar.push(`${WEEKDAYS[d.getUTCDay()]} = ${d.toISOString().split('T')[0]}`);
   }
+  const calendarStr = calendar.join(', ');
+
+  // sunrise-demo (or any future is_demo_tenant) supplies its own prompt
+  // template — same date/weekday/calendar resolution as every real tenant
+  // (a demo caller asking "this Thursday" should work identically), just a
+  // different job description and rules below that. See sales/
+  // kesa-demo-tenant-system-prompt.md for the source of truth on wording.
+  if (tenant.systemPromptOverride) {
+    return tenant.systemPromptOverride
+      .replaceAll('{todayISO}', todayISO)
+      .replaceAll('{weekday}', weekday)
+      .replaceAll('{calendar}', calendarStr);
+  }
+
   return `You are the phone/text receptionist for ${tenant.labName}, a medical laboratory.
 Today's date is ${todayISO}, a ${weekday}. The next seven days are: ${calendar.join(', ')}.
 Lab hours are ${String(tenant.openHour).padStart(2, '0')}:00 to ${String(tenant.closeHour).padStart(2, '0')}:00, appointments on 30-minute slots.

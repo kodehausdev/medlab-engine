@@ -8,7 +8,10 @@
 import "server-only";
 
 const RESEND_API_KEY = process.env.RESEND_API_KEY;
-const FROM_EMAIL = process.env.EMAIL_FROM ?? "MedLab AI <notifications@medlab.ai>";
+// Domain is a placeholder — swap for a real verified-in-Resend Ekaabo
+// domain once one's purchased; production already overrides this via
+// EMAIL_FROM, so this fallback only matters for local dev.
+const FROM_EMAIL = process.env.EMAIL_FROM ?? "Ekaabo <notifications@medlab.ai>";
 
 export interface SendEmailResult {
   ok: boolean;
@@ -69,8 +72,8 @@ function shell(preheader: string, bodyHtml: string): string {
   <table role="presentation" width="100%" style="max-width:420px;margin:0 auto;">
     <tr><td style="padding-bottom:22px;">
       <span style="display:inline-flex;align-items:center;gap:9px;">
-        <span style="display:inline-block;width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);color:#fff;font-weight:700;font-size:13px;line-height:26px;text-align:center;">M</span>
-        <span style="color:#0f172a;font-weight:600;font-size:14px;">MedLab AI Receptionist</span>
+        <span style="display:inline-block;width:26px;height:26px;border-radius:7px;background:linear-gradient(135deg,#4f46e5,#2563eb);color:#fff;font-weight:700;font-size:13px;line-height:26px;text-align:center;">E</span>
+        <span style="color:#0f172a;font-weight:600;font-size:14px;">Ekaabo</span>
       </span>
     </td></tr>
     <tr><td style="background:#fff;border:1px solid #e2e8f0;border-radius:12px;padding:28px 24px;">
@@ -91,7 +94,7 @@ export function teamInviteEmail(actionLink: string, labName: string) {
     `You've been invited to ${safeName}`,
     `<p style="color:#0f172a;font-size:15px;font-weight:600;margin:0 0 8px;">You're invited to ${safeName}</p>
      <p style="color:#64748b;font-size:13px;line-height:1.6;margin:0 0 20px;">
-       Someone on the team added you to the MedLab AI Receptionist console.
+       Someone on the team added you to the Ekaabo console.
        Click below to set your password and get in.
      </p>
      <a href="${safeLink}" style="display:inline-block;background:linear-gradient(135deg,#4f46e5,#2563eb);color:#fff;text-decoration:none;font-size:13px;font-weight:600;padding:10px 18px;border-radius:8px;">
@@ -99,7 +102,7 @@ export function teamInviteEmail(actionLink: string, labName: string) {
      </a>
      <p style="color:#94a3b8;font-size:11px;margin:20px 0 0;">This link expires soon and can only be used once.</p>`
   );
-  const text = `You're invited to ${labName} on the MedLab AI Receptionist console.\n\nAccept your invite: ${actionLink}\n\nThis link expires soon and can only be used once.`;
+  const text = `You're invited to ${labName} on the Ekaabo console.\n\nAccept your invite: ${actionLink}\n\nThis link expires soon and can only be used once.`;
   return { html, text };
 }
 
@@ -118,6 +121,6 @@ export function teamAccessLinkEmail(actionLink: string, labName: string) {
      </a>
      <p style="color:#94a3b8;font-size:11px;margin:20px 0 0;">This link expires soon and can only be used once.</p>`
   );
-  const text = `Set your password for ${labName} on the MedLab AI Receptionist console.\n\n${actionLink}\n\nThis link expires soon and can only be used once.`;
+  const text = `Set your password for ${labName} on the Ekaabo console.\n\n${actionLink}\n\nThis link expires soon and can only be used once.`;
   return { html, text };
 }

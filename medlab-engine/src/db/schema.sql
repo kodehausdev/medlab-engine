@@ -21,10 +21,13 @@ create table if not exists tenants (
     -- self-serve signup starts at payment_pending; hand-provisioned/legacy
     -- tenants default straight to live_active (see migrations/0004)
   test_catalog jsonb,                     -- null/empty = default catalog (see schemas.js)
-  notify_email text,                      -- recipient contacts for future emergency paging (unused so far)
+  notify_email text,                      -- emergency-paging recipient contacts (services/notify.js)
   notify_sms_number text,
+  system_prompt_override text,            -- sunrise-demo etc. — see gemini.js's buildSystemPrompt
+  is_demo_tenant boolean not null default false,
   created_at timestamptz default now()
-    -- (Existing databases: apply migrations/0010_tenant_test_catalog_notify.sql instead.)
+    -- (Existing databases: apply migrations/0010_tenant_test_catalog_notify.sql
+    -- and 0011_demo_tenant.sql instead.)
 );
 
 -- Single-tenant MVP seed — matches the .env defaults. Multi-tenant onboarding

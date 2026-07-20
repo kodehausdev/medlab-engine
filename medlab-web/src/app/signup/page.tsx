@@ -85,7 +85,7 @@ function SignupWizard() {
         <div className="mb-5 flex items-center gap-3">
           <FlaskLogo />
           <div>
-            <div className="text-[17px] font-semibold tracking-tight text-ink">MedLab AI</div>
+            <div className="text-[17px] font-semibold tracking-tight text-ink">Ekaabo</div>
             <div className="text-[10px] font-semibold tracking-[0.08em] text-cream-faint uppercase">NEW LAB SETUP</div>
           </div>
           <Link href="/login" className="ml-auto text-[13px] font-semibold text-terracotta hover:text-terracotta-dark">

@@ -60,7 +60,7 @@ export default function BillingPage() {
         <div className="max-w-[560px] rounded-xl border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-700 dark:bg-slate-900 dark:shadow-none">
           <div className="flex items-center justify-between">
             <div>
-              <div className="text-sm font-bold text-slate-900 dark:text-slate-100">MedLab AI Receptionist — Pro</div>
+              <div className="text-sm font-bold text-slate-900 dark:text-slate-100">Ekaabo — Pro</div>
               <div className="mt-0.5 font-mono text-xs text-slate-500 dark:text-slate-400">$297/mo per location</div>
             </div>
             <span

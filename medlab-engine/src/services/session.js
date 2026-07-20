@@ -13,7 +13,7 @@ function createSessionStore({ ttlMs = SESSION_TTL_MS } = {}) {
     return `${channel}:${from}`;
   }
 
-  function get(channel, from) {
+  function get(channel, from, tenantId) {
     const k = key(channel, from);
     const existing = sessions.get(k);
     if (existing && Date.now() - existing.touchedAt < ttlMs) {
@@ -24,6 +24,7 @@ function createSessionStore({ ttlMs = SESSION_TTL_MS } = {}) {
       key: k,
       channel,
       from,
+      tenantId,            // set once, at creation — used by demo-lead capture
       history: [],        // Gemini `contents` format: { role, parts }
       facts: {},          // structured slots: patient_name, test_type, date, time_slot
       completed: false,   // set true once a booking is confirmed
@@ -33,15 +34,26 @@ function createSessionStore({ ttlMs = SESSION_TTL_MS } = {}) {
     return fresh;
   }
 
+  // Returns the removed session (or undefined if none) so a caller can react
+  // to how a conversation ended — see core/engine.js's demo-lead capture.
   function end(channel, from) {
-    sessions.delete(key(channel, from));
+    const k = key(channel, from);
+    const session = sessions.get(k);
+    sessions.delete(k);
+    return session;
   }
 
   // Opportunistic sweep so long-running processes don't accumulate PHI in RAM.
-  function sweep() {
+  // onEvict(session), if given, fires for each session right before it's
+  // dropped — the only way to observe a conversation that just went idle
+  // (a caller hanging up without saying goodbye never calls end()).
+  function sweep(onEvict) {
     const now = Date.now();
     for (const [k, s] of sessions) {
-      if (now - s.touchedAt >= ttlMs) sessions.delete(k);
+      if (now - s.touchedAt >= ttlMs) {
+        sessions.delete(k);
+        if (onEvict) onEvict(s);
+      }
     }
   }
 

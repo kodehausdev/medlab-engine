@@ -29,9 +29,9 @@ const figtree = Figtree({
 });
 
 export const metadata: Metadata = {
-  title: "MedLab AI — Console",
+  title: "Ekaabo — Console",
   description:
-    "Front-desk operations console for the MedLab AI Receptionist — live call feed, scheduling, and HIPAA guardrail audit.",
+    "Front-desk operations console for Ekaabo — live call feed, scheduling, and HIPAA guardrail audit.",
 };
 
 export default function RootLayout({

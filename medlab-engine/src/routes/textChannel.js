@@ -62,7 +62,7 @@ function createTextChannelRouter({ engine, send, channel, webhookPath, batchWind
 
     if (OPT_OUT_KEYWORDS.has(keyword)) {
       await engine.store.setOptOut(tenant.id, phone, true);
-      engine.endSession(channel, from, tenant.id);
+      engine.endSession(channel, from, tenant);
       engine.events.emit('optout.received', {
         channel, phone, tenantId: tenant.id,
       }, {
