@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 // Shared illustrated empty state — was bare text ("No events yet…") on
 // every panel that could be empty. Small ambient-orb motif, the same
-// expanding-ring language as the AVA brand animation, recreated in CSS
+// expanding-ring language as the brand animation asset, recreated in CSS
 // since that lives as a standalone HTML asset in animations/, not
 // something importable into a React component.
 

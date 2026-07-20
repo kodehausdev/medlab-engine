@@ -104,7 +104,7 @@ export function ConsoleHeader() {
                 {tenant?.lab_name ?? "MedLab AI"}
               </div>
               <div className="font-mono text-[10.5px] text-slate-400">
-                AVA · CONSOLE
+                KESA · CONSOLE
               </div>
             </div>
           </div>
