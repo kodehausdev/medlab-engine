@@ -57,10 +57,10 @@ export default function LoginPage() {
           <FlaskLogo />
           <div>
             <div className="text-[17px] font-semibold tracking-tight text-ink">
-              MedLab AI
+              Ekaabo
             </div>
             <div className="text-[10px] font-semibold tracking-[0.08em] text-cream-faint uppercase">
-              AI Receptionist · Console
+              Kesa · Console
             </div>
           </div>
         </div>
