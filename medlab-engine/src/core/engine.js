@@ -119,13 +119,18 @@ function createEngine(overrides = {}) {
   }
 
   async function getTenantById(id) {
-    if (!id || id === defaultTenant.id) return defaultTenant;
+    if (!id) return defaultTenant;
+    // The DB row wins even when the id matches the env default — a console
+    // rename (Settings → lab name) must show up everywhere the tenant is
+    // re-fetched by id (calendar .ics, reminder texts), not just on inbound
+    // number routing. The env tenant is a fallback, never an override.
     try {
-      return await store.getTenantById(id);
+      const row = await store.getTenantById(id);
+      if (row) return row;
     } catch (err) {
       safeLog(`⚠️ tenant lookup failed for id=${id}: ${err.message}`);
-      return null;
     }
+    return id === defaultTenant.id ? defaultTenant : null;
   }
 
   // Appointment reminder texts (services/reminders.js) — same "just a

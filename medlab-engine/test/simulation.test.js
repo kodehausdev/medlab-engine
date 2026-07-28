@@ -195,6 +195,10 @@ test('whatsapp: inbound text is batched, booked, and confirmed via outbound send
       MessageSid: 'SM_test_1',
     });
     assert.equal(res.status, 200); // ack precedes processing
+    // The ack body must be empty TwiML — Twilio renders a plain-text body
+    // (like sendStatus's "OK") as a visible reply bubble.
+    assert.match(res.body, /<Response><\/Response>/);
+    assert.doesNotMatch(res.body, /OK/);
 
     await waitFor(() => sent.length >= 1);
 
@@ -1570,6 +1574,32 @@ test('history: find_my_appointments returns aggregate visit counts for a returni
     tenant: TENANT, callerPhone: '+15559990000', now: NOW,
   });
   assert.equal(fresh.history, undefined);
+});
+
+test('tenant freshness: getTenantById prefers the DB row over the env default, even for the default id', async () => {
+  const store = createMemoryStore();
+  // Simulate a console rename: the DB row for the SAME id the engine booted
+  // with carries a different lab name than the env config.
+  store.getTenantById = async (id) =>
+    id === TENANT.id ? { ...TENANT, labName: 'Downtown Facility' } : null;
+
+  const engine = createEngine({ store, tenant: TENANT, generateFn: scriptedModel([]), now: NOW });
+  const resolved = await engine.getTenantById(TENANT.id);
+  assert.equal(resolved.labName, 'Downtown Facility',
+    'calendar links and reminders must see the renamed lab, not the env value');
+
+  // No DB row at all (e.g. memory store) still falls back to the env tenant.
+  const bare = createEngine({
+    store: createMemoryStore(), tenant: TENANT, generateFn: scriptedModel([]), now: NOW,
+  });
+  assert.equal((await bare.getTenantById(TENANT.id)).labName, TENANT.labName);
+});
+
+test('prompt: the model is told NOT to re-introduce itself — the system greeting/disclosure already did', () => {
+  const { buildSystemPrompt } = require('../src/services/gemini');
+  const prompt = buildSystemPrompt(TENANT, '2026-07-04');
+  assert.match(prompt, /do NOT introduce yourself again/);
+  assert.match(prompt, /Never claim or imply you are human/);
 });
 
 test('attendance: updateAppointmentStatus moves confirmed → completed / no_show and out of capacity counts', async () => {

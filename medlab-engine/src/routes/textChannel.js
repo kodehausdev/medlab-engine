@@ -110,7 +110,12 @@ function createTextChannelRouter({ engine, send, channel, webhookPath, batchWind
   }
 
   router.post(webhookPath, (req, res) => {
-    res.sendStatus(200); // ack before processing, Twilio retries otherwise
+    // Ack before processing (Twilio retries otherwise) — but with EMPTY
+    // TwiML, never sendStatus(200): Twilio's messaging webhooks treat a
+    // plain-text response body as a reply, and sendStatus's default body
+    // is literally "OK" — which showed up as a stray "OK" bubble before
+    // every real reply.
+    res.type('text/xml').send('<?xml version="1.0" encoding="UTF-8"?><Response></Response>');
 
     const from = req.body?.From;
     const to = req.body?.To; // number the message arrived on → tenant
