@@ -109,6 +109,25 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
       const phone = (phone_number || ctx.callerPhone || '').replace(/^whatsapp:/, '').trim();
       if (!phone) return { error: 'phone_number is required.' };
 
+      // Idempotency guard: the same caller re-booking the identical
+      // test/date/slot gets their existing booking back, never a duplicate
+      // row — covers webhook retries, model double-calls, and plain
+      // caller confusion ("did that go through?").
+      const today = (ctx.now || new Date()).toISOString().split('T')[0];
+      const existing = (await store.findUpcomingAppointments(tenant.id, phone, today))
+        .find(a => a.date === date && a.time_slot === time_slot && a.test_type === canonicalTest);
+      if (existing) {
+        return {
+          already_booked: true,
+          booking_id: existing.id,
+          test_type: canonicalTest,
+          date,
+          time_slot,
+          lab_name: tenant.labName,
+          note: 'This caller already has this exact appointment. Tell them it is already confirmed — do not book it again.',
+        };
+      }
+
       const blocked = await store.blockedSlotsOn(tenant.id, date);
       if (blocked.includes(time_slot)) {
         return { error: `The ${time_slot} slot on ${date} is not available for booking. Offer a nearby open slot.` };

@@ -1350,10 +1350,12 @@ test('booking confirmation: text channels get the calendar link appended; voice 
   const textResult = await textEngine.processTurn({ channel: 'whatsapp', from: `whatsapp:${CALLER}`, text: ALEX_UTTERANCE });
   assert.match(textResult.reply, /Add to your calendar: .*\/calendar\/\d+\.ics\?tenant=test-lab&t=/);
 
-  // Voice: nothing useful to tap mid-call — a follow-up SMS carries the link instead.
+  // Voice: nothing useful to tap mid-call — a follow-up SMS carries the link
+  // instead. Fresh store: with the shared one, this identical booking would
+  // (correctly) hit the duplicate-booking guard instead of confirming.
   const sent = [];
   const voiceEngine = createEngine({
-    store, tenant: TENANT, generateFn: alexBookingScript(), now: NOW,
+    store: createMemoryStore(), tenant: TENANT, generateFn: alexBookingScript(), now: NOW,
     sendCalendarSms: async (to, body, from) => { sent.push({ to, body, from }); },
   });
   const voiceResult = await voiceEngine.processTurn({ channel: 'voice', from: CALLER, text: ALEX_UTTERANCE });
@@ -1600,6 +1602,32 @@ test('prompt: the model is told NOT to re-introduce itself — the system greeti
   const prompt = buildSystemPrompt(TENANT, '2026-07-04');
   assert.match(prompt, /do NOT introduce yourself again/);
   assert.match(prompt, /Never claim or imply you are human/);
+});
+
+test('booking: re-booking the identical test/date/slot returns the existing booking, never a duplicate row', async () => {
+  const store = createMemoryStore();
+  const toolExecutor = createToolHandlers({ store, tenant: TENANT });
+  const args = {
+    patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Blood Draw', date: THURSDAY, time_slot: '14:00',
+  };
+  const ctx = { tenant: TENANT, callerPhone: CALLER, channel: 'whatsapp', now: NOW };
+
+  const first = await toolExecutor.execute('book_appointment', args, ctx);
+  assert.equal(first.confirmed, true);
+  assert.equal(store.appointments.length, 1);
+
+  // Same caller, same everything — hours later, a retry, or model confusion.
+  const second = await toolExecutor.execute('book_appointment', args, ctx);
+  assert.equal(second.already_booked, true);
+  assert.equal(second.booking_id, first.booking_id);
+  assert.equal(store.appointments.length, 1, 'no duplicate row');
+
+  // A different test in the same slot is still a legitimate new booking.
+  const lipid = await toolExecutor.execute('book_appointment',
+    { ...args, test_type: 'Lipid Panel' }, ctx);
+  assert.equal(lipid.confirmed, true);
+  assert.equal(store.appointments.length, 2);
 });
 
 test('attendance: updateAppointmentStatus moves confirmed → completed / no_show and out of capacity counts', async () => {
