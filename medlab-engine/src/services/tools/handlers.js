@@ -264,4 +264,4 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
   };
 }
 
-module.exports = { createToolHandlers, normalizeTestType, buildDaySlots };
+module.exports = { createToolHandlers, normalizeTestType, buildDaySlots, catalogFor };

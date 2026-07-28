@@ -46,7 +46,9 @@ create table if not exists appointments (
   time_slot text not null,                -- 'HH:MM' 24h
   channel text not null,                  -- 'voice' | 'sms' | 'whatsapp'
   status text default 'confirmed',        -- confirmed | cancelled | completed
-  created_at timestamptz default now()
+  created_at timestamptz default now(),
+  reminder_sent_at timestamptz            -- set once by services/reminders.js; null = not sent yet
+    -- (Existing databases: apply migrations/0012_appointment_reminders.sql instead.)
 );
 
 create index if not exists idx_appointments_slot

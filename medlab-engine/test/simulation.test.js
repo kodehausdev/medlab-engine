@@ -98,6 +98,11 @@ async function postForm(port, path, fields) {
   return { status: res.status, body: await res.text() };
 }
 
+async function getPath(port, path) {
+  const res = await fetch(`http://127.0.0.1:${port}${path}`);
+  return { status: res.status, body: await res.text() };
+}
+
 function waitFor(predicate, timeoutMs = 3000, intervalMs = 20) {
   return new Promise((resolve, reject) => {
     const t0 = Date.now();
@@ -973,7 +978,7 @@ test('disclosure: voice greeting and first WhatsApp reply identify the AI', asyn
   const first = await engine.processTurn({
     channel: 'whatsapp', from: `whatsapp:${CALLER}`, text: 'hi',
   });
-  assert.match(first.reply, /^You're chatting with BrightPath Diagnostics's automated AI assistant\./);
+  assert.match(first.reply, /^You're chatting with Kesa, BrightPath Diagnostics's automated AI assistant\./);
 
   // …and later turns don't repeat it.
   const second = await engine.processTurn({
@@ -994,10 +999,10 @@ test('demo tenant: systemPromptOverride replaces the default prompt, with the sa
   };
   const prompt = buildSystemPrompt(demoTenant, '2026-07-04');
   assert.equal(prompt, 'Today is 2026-07-04, a Saturday. Next week: Sunday = 2026-07-05, Monday = 2026-07-06, Tuesday = 2026-07-07, Wednesday = 2026-07-08, Thursday = 2026-07-09, Friday = 2026-07-10, Saturday = 2026-07-11. You are Kesa.');
-  assert.doesNotMatch(prompt, /the phone\/text receptionist/, 'the default template must not leak through');
+  assert.doesNotMatch(prompt, /AI receptionist for/, 'the default template must not leak through');
 
   // A tenant with no override still gets the normal prompt.
-  assert.match(buildSystemPrompt(TENANT, '2026-07-04'), /the phone\/text receptionist/);
+  assert.match(buildSystemPrompt(TENANT, '2026-07-04'), /You are Kesa, the AI receptionist for/);
 });
 
 test('tools: cancel flow — find_my_appointments + cancel_appointment frees the slot', async () => {
@@ -1108,7 +1113,7 @@ test('sms: text-to-book flows end to end — disclosure, tenant-number reply, sm
     assert.equal(sent[0].to, CALLER);
     assert.equal(sent[0].via, LAB_NUMBER);
     // First text reply carries the AI disclosure, then the confirmation
-    assert.match(sent[0].body, /^You're chatting with BrightPath Diagnostics's automated AI assistant\./);
+    assert.match(sent[0].body, /^You're chatting with Kesa, BrightPath Diagnostics's automated AI assistant\./);
     assert.match(sent[0].body, /You're all set, Alex/);
 
     // Appointment row is channel-tagged 'sms'
@@ -1278,4 +1283,170 @@ test('demo lead: a silent hangup (no explicit end) is still captured, via the id
   await capture(store, demoTenant, evicted[0]);
   assert.equal(store.leads.length, 1);
   assert.equal(store.leads[0].stage, 'demo_scheduled');
+});
+
+// ══════════════════════════════════════════════════════════════
+// 13. CALENDAR INVITES — .ics builder, signed download link
+// ══════════════════════════════════════════════════════════════
+const { buildIcsContent, buildIcsUrl, signToken, verifyToken } = require('../src/services/calendarInvite');
+
+test('calendarInvite: buildIcsContent produces a valid VEVENT with the right start/end/duration', () => {
+  const appointment = {
+    id: 42, patient_name: 'Alex', test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+  };
+  const ics = buildIcsContent({ tenant: TENANT, appointment });
+  assert.match(ics, /BEGIN:VCALENDAR/);
+  assert.match(ics, /UID:booking-42@test-lab\.ekaabo/);
+  assert.match(ics, /SUMMARY:Lipid Panel — BrightPath Diagnostics/);
+  // America/New_York is UTC-4 in July (EDT) — 10:00 local = 14:00Z.
+  // Lipid Panel is 15 minutes in DEFAULT_TEST_CATALOG.
+  assert.match(ics, /DTSTART:20260709T140000Z/);
+  assert.match(ics, /DTEND:20260709T141500Z/);
+});
+
+test('calendarInvite: signToken/verifyToken round-trip; tampering or a mismatched tenant/id is rejected', () => {
+  const token = signToken('test-lab', 42);
+  assert.equal(verifyToken('test-lab', 42, token), true);
+  assert.equal(verifyToken('test-lab', 42, token + 'x'), false);
+  assert.equal(verifyToken('other-tenant', 42, token), false);
+  assert.equal(verifyToken('test-lab', 99, token), false);
+});
+
+test('calendar route: a validly signed link serves the .ics file; a bad token or unknown booking 404s', async () => {
+  const store = createMemoryStore();
+  const saved = await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'sms', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+  const engine = createEngine({ store, tenant: TENANT, generateFn: scriptedModel([]), now: NOW });
+  const bundle = createApp({ engine });
+  const { server, port } = await startServer(bundle);
+  try {
+    const goodUrl = buildIcsUrl(TENANT, saved);
+    const ok = await getPath(port, goodUrl.slice(goodUrl.indexOf('/calendar')));
+    assert.equal(ok.status, 200);
+    assert.match(ok.body, /BEGIN:VCALENDAR/);
+
+    const bad = await getPath(port, `/calendar/${saved.id}.ics?tenant=${TENANT.id}&t=wrongtoken`);
+    assert.equal(bad.status, 404);
+
+    const missing = await getPath(port, `/calendar/999.ics?tenant=${TENANT.id}&t=${signToken(TENANT.id, 999)}`);
+    assert.equal(missing.status, 404);
+  } finally {
+    server.close();
+  }
+});
+
+test('booking confirmation: text channels get the calendar link appended; voice gets a follow-up SMS instead', async () => {
+  const store = createMemoryStore();
+
+  // SMS/WhatsApp: link rides in the reply itself.
+  const textEngine = createEngine({ store, tenant: TENANT, generateFn: alexBookingScript(), now: NOW });
+  const textResult = await textEngine.processTurn({ channel: 'whatsapp', from: `whatsapp:${CALLER}`, text: ALEX_UTTERANCE });
+  assert.match(textResult.reply, /Add to your calendar: .*\/calendar\/\d+\.ics\?tenant=test-lab&t=/);
+
+  // Voice: nothing useful to tap mid-call — a follow-up SMS carries the link instead.
+  const sent = [];
+  const voiceEngine = createEngine({
+    store, tenant: TENANT, generateFn: alexBookingScript(), now: NOW,
+    sendCalendarSms: async (to, body, from) => { sent.push({ to, body, from }); },
+  });
+  const voiceResult = await voiceEngine.processTurn({ channel: 'voice', from: CALLER, text: ALEX_UTTERANCE });
+  assert.doesNotMatch(voiceResult.reply, /calendar/i);
+  await waitFor(() => sent.length >= 1);
+  assert.equal(sent[0].to, CALLER);
+  assert.match(sent[0].body, /\/calendar\/\d+\.ics\?tenant=test-lab&t=/);
+});
+
+// ══════════════════════════════════════════════════════════════
+// 14. APPOINTMENT REMINDERS — poller, lead-time window, no double-send
+// ══════════════════════════════════════════════════════════════
+const { runReminderSweep } = require('../src/services/reminders');
+
+test('reminders: an appointment inside the lead window gets texted once and marked sent', async () => {
+  const store = createMemoryStore();
+  // 10:00 America/New_York on THURSDAY = 14:00Z. "Now" 90 minutes before,
+  // well inside the default 24h lead window.
+  const now = new Date('2026-07-09T12:30:00Z');
+  const saved = await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'sms', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const sent = [];
+  const result = await runReminderSweep({
+    store,
+    getTenant: async () => TENANT,
+    send: { sendSms: async (to, body, from) => sent.push({ to, body, from }) },
+    now,
+  });
+
+  assert.equal(result.sent, 1);
+  assert.equal(sent.length, 1);
+  assert.equal(sent[0].to, CALLER);
+  assert.match(sent[0].body, /Reminder:.*Lipid Panel.*BrightPath Diagnostics/);
+
+  const row = await store.getAppointmentById(TENANT.id, saved.id);
+  assert.ok(row.reminder_sent_at, 'reminder_sent_at must be stamped');
+
+  // A second sweep at the same instant must not resend.
+  sent.length = 0;
+  const again = await runReminderSweep({
+    store, getTenant: async () => TENANT,
+    send: { sendSms: async (to, body, from) => sent.push({ to, body, from }) },
+    now,
+  });
+  assert.equal(again.sent, 0);
+  assert.equal(sent.length, 0);
+});
+
+test('reminders: an appointment outside the lead window (or already past) is left alone', async () => {
+  const store = createMemoryStore();
+  await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'sms', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const sendSms = async () => { throw new Error('must not be called'); };
+
+  // Two days before the slot — outside the default 24h lead window.
+  const tooEarly = await runReminderSweep({
+    store, getTenant: async () => TENANT, send: { sendSms }, now: new Date('2026-07-07T12:00:00Z'),
+  });
+  assert.equal(tooEarly.sent, 0);
+
+  // An hour after the slot already happened.
+  const tooLate = await runReminderSweep({
+    store, getTenant: async () => TENANT, send: { sendSms }, now: new Date('2026-07-09T15:00:00Z'),
+  });
+  assert.equal(tooLate.sent, 0);
+});
+
+test('reminders: a whatsapp-channel booking is reminded over WhatsApp, from the tenant WhatsApp number', async () => {
+  const store = createMemoryStore();
+  const waTenant = { ...TENANT, whatsappNumber: 'whatsapp:+15550009999' };
+  await store.insertAppointment({
+    tenant_id: waTenant.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'whatsapp', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const waSent = [];
+  const smsSent = [];
+  const result = await runReminderSweep({
+    store, getTenant: async () => waTenant,
+    send: {
+      sendSms: async (to, body, from) => smsSent.push({ to, body, from }),
+      sendWhatsApp: async (to, body, from) => waSent.push({ to, body, from }),
+    },
+    now: new Date('2026-07-09T12:30:00Z'),
+  });
+
+  assert.equal(result.sent, 1);
+  assert.equal(smsSent.length, 0);
+  assert.equal(waSent.length, 1);
+  assert.equal(waSent[0].from, waTenant.whatsappNumber);
 });

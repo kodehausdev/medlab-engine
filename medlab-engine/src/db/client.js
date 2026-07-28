@@ -85,6 +85,25 @@ function createMemoryStore() {
       return row;
     },
 
+    async getAppointmentById(tenantId, id) {
+      return appointments.find(a => a.id === Number(id) && a.tenant_id === tenantId) || null;
+    },
+
+    // Broad date-range fetch (inclusive) for services/reminders.js — the
+    // poller narrows to the actual send window itself in JS, since "due"
+    // depends on the tenant's timezone, not just the calendar date.
+    async appointmentsPendingReminder(dateFrom, dateTo) {
+      return appointments.filter(
+        a => a.status === 'confirmed' && !a.reminder_sent_at &&
+             a.date >= dateFrom && a.date <= dateTo
+      );
+    },
+
+    async markReminderSent(tenantId, id) {
+      const row = appointments.find(a => a.id === id && a.tenant_id === tenantId);
+      if (row) row.reminder_sent_at = new Date().toISOString();
+    },
+
     // Memory store has no tenant table — the engine falls back to its
     // env-configured default tenant. Tests inject overrides for routing.
     async getTenantByNumber() {
@@ -251,6 +270,38 @@ function createSupabaseStore() {
         .select().maybeSingle();
       if (error) throw new Error(`Supabase update failed: ${error.message}`);
       return data;
+    },
+
+    async getAppointmentById(tenantId, id) {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, tenant_id, patient_name, test_type, date, time_slot, channel, status')
+        .eq('tenant_id', tenantId).eq('id', id)
+        .maybeSingle();
+      if (error) throw new Error(`Supabase select failed: ${error.message}`);
+      return data;
+    },
+
+    // Broad date-range fetch (inclusive) for services/reminders.js — the
+    // poller narrows to the actual send window itself in JS, since "due"
+    // depends on the tenant's timezone, not just the calendar date.
+    async appointmentsPendingReminder(dateFrom, dateTo) {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, tenant_id, patient_name, phone_number, test_type, date, time_slot, channel, status')
+        .eq('status', 'confirmed')
+        .is('reminder_sent_at', null)
+        .gte('date', dateFrom).lte('date', dateTo);
+      if (error) throw new Error(`Supabase reminder-window select failed: ${error.message}`);
+      return data || [];
+    },
+
+    async markReminderSent(tenantId, id) {
+      const { error } = await supabase
+        .from('appointments')
+        .update({ reminder_sent_at: new Date().toISOString() })
+        .eq('tenant_id', tenantId).eq('id', id);
+      if (error) throw new Error(`Supabase reminder mark failed: ${error.message}`);
     },
 
     async getTenantByNumber(number) {

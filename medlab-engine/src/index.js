@@ -9,6 +9,7 @@ const { createWhatsAppRouter } = require('./routes/whatsapp');
 const { createSmsRouter } = require('./routes/sms');
 const { createVoiceRouter } = require('./routes/voice');
 const { createDashboardRouter } = require('./routes/dashboard');
+const { createCalendarRouter } = require('./routes/calendar');
 const { twilioSignatureGuard } = require('./services/twilioSig');
 const { sendWhatsApp, sendSms } = require('./services/twilio');
 const { phiRequestGuard, safeLog } = require('./compliance/hipaa');
@@ -43,6 +44,7 @@ function createApp(overrides = {}) {
   }));
   app.use(createVoiceRouter({ engine }));
   app.use(createDashboardRouter({ engine, auth: overrides.dashboardAuth }));
+  app.use(createCalendarRouter({ engine }));
 
   return { app, engine };
 }
