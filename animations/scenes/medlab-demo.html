@@ -1,0 +1,192 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>MedLab AI Receptionist — demo</title>
+<style>
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 1080px; height: 1920px; overflow: hidden;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: #0f172a;
+  }
+  .screen {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+    opacity: 0; transform: translateY(18px) scale(.98);
+    transition: opacity .5s ease, transform .5s ease;
+    pointer-events: none;
+  }
+  .screen.show { opacity: 1; transform: translateY(0) scale(1); }
+  .mono { font-family: 'IBM Plex Mono', monospace; }
+
+  /* ===================== screen 1 — intro ===================== */
+  #s-intro { background: radial-gradient(circle at 50% 38%, #1e2a4a 0%, #0f172a 70%); }
+  .logo-mark {
+    width: 108px; height: 108px; border-radius: 28px;
+    background: linear-gradient(135deg,#4f46e5,#2563eb);
+    display: grid; place-items: center; margin-bottom: 34px;
+    box-shadow: 0 18px 60px rgba(79,70,229,.45);
+  }
+  .logo-mark svg { width: 54px; height: 54px; }
+  .wordmark { color: #f8fafc; font-size: 56px; font-weight: 700; letter-spacing: -.5px; }
+  .tagline { color: #94a3b8; font-size: 24px; margin-top: 14px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* ===================== screen 2 — incoming call ===================== */
+  #s-call { background: radial-gradient(circle at 50% 40%, #1e2a4a 0%, #0f172a 70%); }
+  .ring-wrap { position: relative; width: 220px; height: 220px; display: grid; place-items: center; margin-bottom: 40px; }
+  .ring { position: absolute; border-radius: 50%; border: 2px solid rgba(79,70,229,.55); animation: ringPulse 1.8s ease-out infinite; }
+  .ring.r2 { animation-delay: .6s; }
+  .ring.r3 { animation-delay: 1.2s; }
+  @keyframes ringPulse { 0% { width: 92px; height: 92px; opacity: .9; } 100% { width: 220px; height: 220px; opacity: 0; } }
+  .phone-icon { width: 92px; height: 92px; border-radius: 50%; background: linear-gradient(135deg,#4f46e5,#2563eb); display: grid; place-items: center; z-index: 2; }
+  .call-label { color: #f8fafc; font-size: 30px; font-weight: 600; }
+  .call-sub { color: #94a3b8; font-size: 20px; margin-top: 10px; font-family: 'IBM Plex Mono', monospace; }
+
+  /* ===================== screen 3 — transcript ===================== */
+  #s-chat { background: #f8fafc; align-items: stretch; justify-content: flex-start; }
+  .chat-header { height: 96px; background: #0f172a; display: flex; align-items: center; gap: 14px; padding: 0 40px; flex: none; }
+  .chat-header .dot { width: 12px; height: 12px; border-radius: 50%; background: #34d399; animation: pulse 1.6s ease-in-out infinite; }
+  .chat-header .t { color: #f8fafc; font-size: 22px; font-family: 'IBM Plex Mono', monospace; }
+  @keyframes pulse { 0%,100% { opacity: 1; } 50% { opacity: .35; } }
+  .chat-body { flex: 1; padding: 60px 44px; display: flex; flex-direction: column; gap: 28px; justify-content: center; }
+  .bubble {
+    max-width: 78%; padding: 22px 26px; border-radius: 20px; font-size: 26px; line-height: 1.45;
+    opacity: 0; transform: translateY(16px); transition: opacity .5s ease, transform .5s ease;
+  }
+  .bubble.in { opacity: 1; transform: translateY(0); }
+  .bubble.caller { align-self: flex-start; background: #e2e8f0; color: #0f172a; border-bottom-left-radius: 6px; }
+  .bubble.ai { align-self: flex-end; background: linear-gradient(135deg,#4f46e5,#2563eb); color: #fff; border-bottom-right-radius: 6px; }
+  .bubble .who { display: block; font-size: 15px; font-family: 'IBM Plex Mono', monospace; opacity: .7; margin-bottom: 6px; }
+
+  /* ===================== screen 4 — dashboard booking ===================== */
+  #s-dash { background: #f1f5f9; align-items: stretch; justify-content: center; }
+  .dash-header { position: absolute; top: 0; left: 0; right: 0; height: 96px; background: #0f172a; display: flex; align-items: center; gap: 14px; padding: 0 40px; }
+  .dash-header .t { color: #f8fafc; font-size: 22px; font-family: 'IBM Plex Mono', monospace; }
+  .dash-header .badge {
+    margin-left: auto; display: flex; align-items: center; gap: 8px; background: rgba(16,185,129,.16);
+    border: 1px solid rgba(16,185,129,.4); padding: 8px 16px; border-radius: 999px;
+  }
+  .dash-header .badge .d { width: 9px; height: 9px; border-radius: 50%; background: #34d399; animation: pulse 1.6s ease-in-out infinite; }
+  .dash-header .badge span { color: #6ee7b7; font-size: 16px; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+  .dash-body { padding: 48px 40px 0; display: flex; flex-direction: column; gap: 20px; flex: none; }
+  .row {
+    background: #fff; border: 1px solid #e2e8f0; border-radius: 16px; padding: 30px 32px;
+    display: flex; align-items: center; gap: 22px; box-shadow: 0 1px 2px rgba(15,23,42,.05);
+  }
+  .row.new {
+    opacity: 0; transform: translateY(30px); transition: opacity .6s ease, transform .6s ease;
+    border-color: #bbf7d0; background: linear-gradient(180deg,#f0fdf4,#fff 70%);
+  }
+  .row.new.in { opacity: 1; transform: translateY(0); }
+  .row .av { width: 60px; height: 60px; border-radius: 50%; background: #cbd5e1; flex: none; }
+  .row.new .av { background: linear-gradient(135deg,#4f46e5,#2563eb); }
+  .row .info { flex: 1; }
+  .row .name { font-size: 26px; font-weight: 600; color: #0f172a; }
+  .row .meta { font-size: 17px; color: #94a3b8; font-family: 'IBM Plex Mono', monospace; margin-top: 5px; }
+  .row .status { font-size: 16px; font-weight: 700; padding: 9px 18px; border-radius: 999px; font-family: 'IBM Plex Mono', monospace; }
+  .row.new .status { background: #dcfce7; color: #166534; }
+  .row:not(.new) .status { background: #f1f5f9; color: #94a3b8; }
+  .compliance-pill {
+    margin: 34px 40px 0; align-self: flex-start; display: inline-flex; align-items: center; gap: 10px;
+    background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 999px; padding: 13px 24px;
+    opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease;
+  }
+  .compliance-pill.in { opacity: 1; transform: translateY(0); }
+  .compliance-pill .d { width: 11px; height: 11px; border-radius: 50%; background: #16a34a; }
+  .compliance-pill span { font-size: 17px; font-weight: 700; color: #166534; font-family: 'IBM Plex Mono', monospace; }
+  .stat-row { margin: 44px 40px 0; display: flex; gap: 16px; }
+  .stat {
+    flex: 1; background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; padding: 24px 22px;
+    opacity: 0; transform: translateY(12px); transition: opacity .5s ease, transform .5s ease;
+  }
+  .stat.in { opacity: 1; transform: translateY(0); }
+  .stat .n { font-size: 34px; font-weight: 700; color: #0f172a; font-family: 'IBM Plex Mono', monospace; }
+  .stat .l { font-size: 14px; color: #94a3b8; margin-top: 6px; }
+
+  /* ===================== screen 5 — end card ===================== */
+  #s-end { background: radial-gradient(circle at 50% 38%, #1e2a4a 0%, #0f172a 70%); }
+  .price-tag {
+    margin-top: 26px; color: #94a3b8; font-size: 22px; font-family: 'IBM Plex Mono', monospace;
+    border: 1px solid #334155; border-radius: 999px; padding: 10px 24px;
+  }
+</style>
+</head>
+<body>
+
+  <div id="s-intro" class="screen">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a4 4 0 0 1 4 4v4a4 4 0 1 1-8 0V7a4 4 0 0 1 4-4Z" fill="#fff"/><path d="M6 11a6 6 0 0 0 12 0M12 19v3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div class="wordmark">Receptionly</div>
+    <div class="tagline">MEDLAB AI RECEPTIONIST</div>
+  </div>
+
+  <div id="s-call" class="screen">
+    <div class="ring-wrap">
+      <div class="ring r1"></div>
+      <div class="ring r2"></div>
+      <div class="ring r3"></div>
+      <div class="phone-icon">
+        <svg width="40" height="40" viewBox="0 0 24 24" fill="none"><path d="M4 5c0-1 .8-2 2-2h2.2c.5 0 1 .3 1.1.8l1 3.3c.2.5 0 1-.4 1.3L8.6 9.6c1 2.3 2.8 4.2 5.1 5.2l1.2-1.3c.4-.4.9-.5 1.4-.4l3.3 1c.5.2.8.6.8 1.1V17.7c0 1.2-1 2-2.1 1.9C10.9 19 4.9 13 4.4 5.9 4.3 5.6 4 5.3 4 5Z" fill="#fff"/></svg>
+      </div>
+    </div>
+    <div class="call-label">Incoming call</div>
+    <div class="call-sub">(615) 555-0148 · Lindberg Draw Station</div>
+  </div>
+
+  <div id="s-chat" class="screen">
+    <div class="chat-header"><div class="dot"></div><div class="t">AI RECEPTIONIST · LIVE</div></div>
+    <div class="chat-body">
+      <div class="bubble caller" id="b1"><span class="who">CALLER</span>Hi, can I book a strep test for my daughter tomorrow?</div>
+      <div class="bubble ai" id="b2"><span class="who">RECEPTIONIST · AI</span>Of course — I have 10:30am or 2:00pm tomorrow at Lindberg. Which works better?</div>
+    </div>
+  </div>
+
+  <div id="s-dash" class="screen">
+    <div class="dash-header">
+      <div class="t">MEDLAB · CONSOLE</div>
+      <div class="badge"><div class="d"></div><span>LIVE</span></div>
+    </div>
+    <div class="dash-body">
+      <div class="row"><div class="av"></div><div class="info"><div class="name">Marcus Webb</div><div class="meta">CBC panel · 8:15am</div></div><div class="status">Checked in</div></div>
+      <div class="row new" id="row-new"><div class="av"></div><div class="info"><div class="name">Sofia Nguyen — for Ellie (8)</div><div class="meta">Rapid strep · tomorrow 10:30am</div></div><div class="status">Booked</div></div>
+    </div>
+    <div class="compliance-pill" id="pill"><div class="d"></div><span>HIPAA GUARDRAILS ACTIVE</span></div>
+    <div class="stat-row">
+      <div class="stat" id="stat1"><div class="n">47</div><div class="l">Calls answered today</div></div>
+      <div class="stat" id="stat2"><div class="n">0</div><div class="l">Missed calls</div></div>
+    </div>
+  </div>
+
+  <div id="s-end" class="screen">
+    <div class="logo-mark">
+      <svg viewBox="0 0 24 24" fill="none"><path d="M12 3a4 4 0 0 1 4 4v4a4 4 0 1 1-8 0V7a4 4 0 0 1 4-4Z" fill="#fff"/><path d="M6 11a6 6 0 0 0 12 0M12 19v3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div class="wordmark" style="font-size:48px;text-align:center;padding:0 60px">Never miss a call again.</div>
+    <div class="price-tag">MedLab AI Receptionist · $297/mo</div>
+  </div>
+
+<script>
+  // Absolute cue timeline (ms from page load). Each cue toggles a class —
+  // avoids nested CSS animation-delay, which doesn't inherit parent timing.
+  const cues = [
+    [0,     () => show('s-intro')],
+    [2000,  () => { hide('s-intro'); show('s-call'); }],
+    [4900,  () => { hide('s-call'); show('s-chat'); }],
+    [5400,  () => on('b1')],
+    [6600,  () => on('b2')],
+    [8300,  () => { hide('s-chat'); show('s-dash'); }],
+    [9400,  () => on('row-new')],
+    [10400, () => on('pill')],
+    [11000, () => { on('stat1'); on('stat2'); }],
+    [12800, () => { hide('s-dash'); show('s-end'); }],
+  ];
+  function show(id) { document.getElementById(id).classList.add('show'); }
+  function hide(id) { document.getElementById(id).classList.remove('show'); }
+  function on(id) { document.getElementById(id).classList.add('in'); }
+  for (const [t, fn] of cues) setTimeout(fn, t);
+</script>
+
+</body>
+</html>

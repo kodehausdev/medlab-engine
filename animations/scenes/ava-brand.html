@@ -1,0 +1,153 @@
+<!doctype html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Persona brand motion — placeholder name</title>
+<style>
+  /* PLACEHOLDER: persona name is not finalized (see repo memory — "Ava" was
+     evaluated and rejected on trademark/collision grounds; no name is final).
+     Swap the single #persona-name text node below when a name is picked. */
+  * { box-sizing: border-box; }
+  html, body {
+    margin: 0; padding: 0; width: 1080px; height: 1920px; overflow: hidden;
+    font-family: 'IBM Plex Sans', system-ui, sans-serif;
+    background: #0a0e1a;
+  }
+  .stage {
+    position: absolute; inset: 0; display: flex; flex-direction: column;
+    align-items: center; justify-content: center;
+  }
+
+  /* ---------- ambient orb + waveform, runs the whole clip ---------- */
+  .orb-wrap { position: relative; width: 480px; height: 480px; display: grid; place-items: center; }
+  .orb-glow {
+    position: absolute; width: 480px; height: 480px; border-radius: 50%;
+    background: radial-gradient(circle, rgba(79,70,229,.55) 0%, rgba(79,70,229,0) 70%);
+    animation: breathe 3.2s ease-in-out infinite;
+  }
+  @keyframes breathe {
+    0%,100% { transform: scale(.85); opacity: .6; }
+    50%     { transform: scale(1.05); opacity: 1; }
+  }
+  .orb-ring {
+    position: absolute; border-radius: 50%; border: 1.5px solid rgba(110,231,183,.35);
+    animation: ringOut 3.2s ease-out infinite;
+  }
+  @keyframes ringOut {
+    0%   { width: 200px; height: 200px; opacity: .8; }
+    100% { width: 460px; height: 460px; opacity: 0; }
+  }
+  .orb-core {
+    width: 180px; height: 180px; border-radius: 50%;
+    background: linear-gradient(135deg,#4f46e5,#2563eb);
+    box-shadow: 0 0 90px rgba(79,70,229,.65);
+    display: grid; place-items: center; z-index: 2;
+  }
+
+  .bars { display: flex; align-items: center; gap: 8px; height: 60px; margin-top: 46px; z-index: 2; }
+  .bars span {
+    width: 8px; border-radius: 4px; background: linear-gradient(180deg,#6ee7b7,#4f46e5);
+    animation: bar 1.1s ease-in-out infinite;
+  }
+  .bars span:nth-child(1) { height: 18px; animation-delay: 0s; }
+  .bars span:nth-child(2) { height: 40px; animation-delay: .1s; }
+  .bars span:nth-child(3) { height: 60px; animation-delay: .2s; }
+  .bars span:nth-child(4) { height: 34px; animation-delay: .3s; }
+  .bars span:nth-child(5) { height: 52px; animation-delay: .4s; }
+  .bars span:nth-child(6) { height: 22px; animation-delay: .5s; }
+  .bars span:nth-child(7) { height: 44px; animation-delay: .6s; }
+  @keyframes bar {
+    0%,100% { transform: scaleY(.4); }
+    50%     { transform: scaleY(1); }
+  }
+
+  /* ---------- staged text reveals ---------- */
+  .listening {
+    position: absolute; top: 30%; color: #64748b; font-size: 20px; letter-spacing: 3px;
+    font-family: 'IBM Plex Mono', monospace; text-transform: uppercase;
+    opacity: 0; animation: fadeHold 3.2s ease both; animation-delay: 0s;
+  }
+  @keyframes fadeHold {
+    0%  { opacity: 0; }
+    20% { opacity: 1; }
+    80% { opacity: 1; }
+    100%{ opacity: 0; }
+  }
+
+  .name-wrap { position: absolute; bottom: 30%; display: flex; gap: 4px; }
+  .name-wrap span {
+    color: #f8fafc; font-size: 96px; font-weight: 700; letter-spacing: 2px;
+    opacity: 0; transform: translateY(30px);
+    animation: letterIn .6s ease forwards;
+  }
+  .name-wrap span:nth-child(1) { animation-delay: 3.2s; }
+  .name-wrap span:nth-child(2) { animation-delay: 3.4s; }
+  .name-wrap span:nth-child(3) { animation-delay: 3.6s; }
+  @keyframes letterIn { to { opacity: 1; transform: translateY(0); } }
+
+  .tagline {
+    position: absolute; bottom: 24%; color: #94a3b8; font-size: 26px;
+    opacity: 0; animation: fadeUp 1s ease forwards; animation-delay: 6s;
+  }
+  @keyframes fadeUp {
+    from { opacity: 0; transform: translateY(16px); }
+    to   { opacity: 1; transform: translateY(0); }
+  }
+
+  .kicker {
+    position: absolute; bottom: 19%; color: #475569; font-size: 16px; letter-spacing: 3px;
+    font-family: 'IBM Plex Mono', monospace; text-transform: uppercase;
+    opacity: 0; animation: fadeUp 1s ease forwards; animation-delay: 7s;
+  }
+
+  /* ---------- outro fade ---------- */
+  .outro {
+    position: absolute; inset: 0; background: #0a0e1a; display: flex;
+    flex-direction: column; align-items: center; justify-content: center;
+    opacity: 0; animation: outroIn 2.5s ease forwards; animation-delay: 9.5s;
+  }
+  @keyframes outroIn {
+    0%   { opacity: 0; }
+    40%  { opacity: 1; }
+    100% { opacity: 1; }
+  }
+  .outro .mark {
+    width: 88px; height: 88px; border-radius: 22px; background: linear-gradient(135deg,#4f46e5,#2563eb);
+    display: grid; place-items: center; margin-bottom: 24px;
+  }
+  .outro .word { color: #f8fafc; font-size: 40px; font-weight: 700; }
+  .outro .sub { color: #64748b; font-size: 18px; margin-top: 10px; font-family: 'IBM Plex Mono', monospace; letter-spacing: 2px; }
+</style>
+</head>
+<body>
+
+  <div class="stage">
+    <div class="orb-wrap">
+      <div class="orb-glow"></div>
+      <div class="orb-ring" style="animation-delay:0s"></div>
+      <div class="orb-ring" style="animation-delay:1.1s"></div>
+      <div class="orb-ring" style="animation-delay:2.2s"></div>
+      <div class="orb-core"></div>
+    </div>
+    <div class="bars">
+      <span></span><span></span><span></span><span></span><span></span><span></span><span></span>
+    </div>
+
+    <div class="listening">Listening</div>
+    <div class="name-wrap" id="persona-name">
+      <span>A</span><span>V</span><span>A</span>
+    </div>
+    <div class="tagline">Always answering. Never missing a call.</div>
+    <div class="kicker">AI Receptionist</div>
+  </div>
+
+  <div class="outro">
+    <div class="mark">
+      <svg viewBox="0 0 24 24" fill="none" width="44" height="44"><path d="M12 3a4 4 0 0 1 4 4v4a4 4 0 1 1-8 0V7a4 4 0 0 1 4-4Z" fill="#fff"/><path d="M6 11a6 6 0 0 0 12 0M12 19v3" stroke="#fff" stroke-width="1.8" stroke-linecap="round"/></svg>
+    </div>
+    <div class="word">Receptionly</div>
+    <div class="sub">AI RECEPTIONIST</div>
+  </div>
+
+</body>
+</html>
