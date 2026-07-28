@@ -48,9 +48,11 @@ const config = {
   calendarTokenSecret:
     process.env.CALENDAR_TOKEN_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-insecure-calendar-secret-change-me',
 
-  // How long before an appointment the reminder text goes out, and how often
-  // the poller checks for appointments that just entered that window.
+  // Two-touch reminder schedule: a day-before text (REMINDER_LEAD_HOURS
+  // before the slot) plus a short same-day nudge (REMINDER_SAMEDAY_LEAD_HOURS
+  // before). The poller checks for appointments entering either window.
   reminderLeadHours: Number(process.env.REMINDER_LEAD_HOURS || 24),
+  reminderSamedayLeadHours: Number(process.env.REMINDER_SAMEDAY_LEAD_HOURS || 2),
   reminderPollMinutes: Number(process.env.REMINDER_POLL_MINUTES || 15),
 
   tenant: {

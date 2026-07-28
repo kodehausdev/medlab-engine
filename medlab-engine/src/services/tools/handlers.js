@@ -164,6 +164,22 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
 
       const today = (ctx.now || new Date()).toISOString().split('T')[0];
       const rows = await store.findUpcomingAppointments(tenant.id, phone, today);
+
+      // Returning-patient context: aggregate counts only, never itemized
+      // history — the model gets tone signal ("welcome back"), not a
+      // recitable visit log. Same whitelisted fields as everything else.
+      let history;
+      const past = (await store.pastAppointments(tenant.id, phone, today)) || [];
+      if (past.length) {
+        const attended = past.filter(a => a.status === 'completed');
+        history = {
+          past_appointments: past.length,
+          attended: attended.length,
+          missed: past.filter(a => a.status === 'no_show').length,
+          last_attended_date: attended[0]?.date,
+        };
+      }
+
       return {
         appointments: rows.map(a => ({
           booking_id: a.id,
@@ -171,6 +187,7 @@ function createToolHandlers({ store, tenant: defaultTenant, events }) {
           date: a.date,
           time_slot: a.time_slot,
         })),
+        history,
         note: rows.length
           ? undefined
           : 'No upcoming appointments found for this phone number.',

@@ -158,7 +158,10 @@ export default function SchedulingPage() {
           ) : (
             slots.map((slot) => {
               const booked = bySlot.get(slot) ?? [];
-              const open = capacity - booked.length;
+              // Attendance-marked rows (completed / no_show) still occupy a
+              // chair cell but only confirmed ones count against capacity —
+              // mirrors the engine's countBookings.
+              const open = capacity - booked.filter((a) => a.status === "confirmed").length;
               const block = blockBySlot.get(slot);
               return (
                 <div
@@ -173,23 +176,11 @@ export default function SchedulingPage() {
                     const appt = booked[i];
                     if (appt) {
                       return (
-                        <div
+                        <ApptChip
                           key={i}
-                          className="relative min-h-[34px] min-w-0 rounded-lg border border-indigo-200 bg-indigo-50 px-2.5 py-1.5 pr-5 dark:border-indigo-500/30 dark:bg-indigo-500/10"
-                        >
-                          <CancelApptButton id={appt.id} />
-                          <div className="truncate text-[11px] font-semibold text-indigo-900 dark:text-indigo-200">
-                            {appt.patient_name}
-                            {appt.channel === "walk-in" ? (
-                              <span className="ml-1 font-mono text-[9px] font-normal text-indigo-400 dark:text-indigo-400/70">
-                                walk-in
-                              </span>
-                            ) : null}
-                          </div>
-                          <div className="truncate font-mono text-[9.5px] text-indigo-400 dark:text-indigo-400/80">
-                            {appt.test_type}
-                          </div>
-                        </div>
+                          appt={appt}
+                          canMark={source === "supabase" && date <= toDateStr(new Date())}
+                        />
                       );
                     }
                     if (addSlot === slot && i === booked.length) {
@@ -286,6 +277,131 @@ export default function SchedulingPage() {
         </div>
       </div>
     </div>
+  );
+}
+
+// One chair cell. Confirmed chips keep the indigo style and — on today or a
+// past day — grow Attended / No-show marking; marked chips restyle by
+// outcome and stay on the grid (only cancellation frees the chair).
+function ApptChip({ appt, canMark }: { appt: Appointment; canMark: boolean }) {
+  const styles = {
+    confirmed:
+      "border-indigo-200 bg-indigo-50 dark:border-indigo-500/30 dark:bg-indigo-500/10",
+    completed:
+      "border-emerald-200 bg-emerald-50 dark:border-emerald-500/30 dark:bg-emerald-500/10",
+    no_show: "border-rose-200 bg-rose-50 dark:border-rose-500/30 dark:bg-rose-500/10",
+    cancelled: "border-slate-200 bg-slate-50 dark:border-slate-700 dark:bg-slate-800",
+  } as const;
+  const nameStyles = {
+    confirmed: "text-indigo-900 dark:text-indigo-200",
+    completed: "text-emerald-900 dark:text-emerald-200",
+    no_show: "text-rose-900 dark:text-rose-200",
+    cancelled: "text-slate-500 dark:text-slate-400",
+  } as const;
+
+  return (
+    <div
+      className={`relative min-h-[34px] min-w-0 rounded-lg border px-2.5 py-1.5 pr-5 ${styles[appt.status]}`}
+    >
+      {appt.status === "confirmed" ? <CancelApptButton id={appt.id} /> : null}
+      <div className={`truncate text-[11px] font-semibold ${nameStyles[appt.status]}`}>
+        {appt.patient_name}
+        {appt.channel === "walk-in" ? (
+          <span className="ml-1 font-mono text-[9px] font-normal opacity-60">walk-in</span>
+        ) : null}
+        {appt.status === "completed" ? (
+          <span className="ml-1 font-mono text-[9px] font-normal text-emerald-600 dark:text-emerald-400">
+            ✓ attended
+          </span>
+        ) : appt.status === "no_show" ? (
+          <span className="ml-1 font-mono text-[9px] font-normal text-rose-600 dark:text-rose-400">
+            no-show
+          </span>
+        ) : null}
+      </div>
+      <div className="truncate font-mono text-[9.5px] opacity-70">{appt.test_type}</div>
+      {appt.status === "confirmed" && canMark ? (
+        <AttendanceButtons id={appt.id} />
+      ) : appt.status !== "confirmed" && canMark ? (
+        <AttendanceUndoButton id={appt.id} />
+      ) : null}
+    </div>
+  );
+}
+
+function AttendanceButtons({ id }: { id: number }) {
+  const [busy, setBusy] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+
+  async function mark(status: "completed" | "no_show") {
+    setBusy(true);
+    setError(null);
+    try {
+      const res = await fetch("/api/scheduling/attendance", {
+        method: "POST",
+        headers: await authHeaders(),
+        body: JSON.stringify({ id, status }),
+      });
+      if (res.status === 401) return void recoverFromExpiredSession();
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error ?? "Could not update.");
+    } catch (err) {
+      setError(err instanceof Error ? err.message : "Something went wrong.");
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <div className="mt-1 flex items-center gap-1">
+      <button
+        onClick={() => mark("completed")}
+        disabled={busy}
+        className="rounded bg-emerald-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-emerald-600 disabled:opacity-40"
+      >
+        ✓ Attended
+      </button>
+      <button
+        onClick={() => mark("no_show")}
+        disabled={busy}
+        className="rounded bg-rose-600/90 px-1.5 py-0.5 text-[9px] font-semibold text-white hover:bg-rose-600 disabled:opacity-40"
+      >
+        No-show
+      </button>
+      {error ? (
+        <span className="truncate text-[9px] font-medium text-red-600 dark:text-red-400">
+          {error}
+        </span>
+      ) : null}
+    </div>
+  );
+}
+
+function AttendanceUndoButton({ id }: { id: number }) {
+  const [busy, setBusy] = useState(false);
+
+  async function undo() {
+    setBusy(true);
+    try {
+      const res = await fetch("/api/scheduling/attendance", {
+        method: "POST",
+        headers: await authHeaders(),
+        body: JSON.stringify({ id, status: "confirmed" }),
+      });
+      if (res.status === 401) return void recoverFromExpiredSession();
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  return (
+    <button
+      onClick={undo}
+      disabled={busy}
+      className="mt-1 text-[9px] font-semibold text-slate-400 hover:text-slate-600 disabled:opacity-40 dark:text-slate-500 dark:hover:text-slate-300"
+    >
+      undo
+    </button>
   );
 }
 

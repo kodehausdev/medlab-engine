@@ -92,16 +92,35 @@ function createMemoryStore() {
     // Broad date-range fetch (inclusive) for services/reminders.js — the
     // poller narrows to the actual send window itself in JS, since "due"
     // depends on the tenant's timezone, not just the calendar date.
+    // "Pending" = either reminder touch still unsent.
     async appointmentsPendingReminder(dateFrom, dateTo) {
       return appointments.filter(
-        a => a.status === 'confirmed' && !a.reminder_sent_at &&
+        a => a.status === 'confirmed' &&
+             (!a.reminder_sent_at || !a.reminder_sameday_sent_at) &&
              a.date >= dateFrom && a.date <= dateTo
       );
     },
 
-    async markReminderSent(tenantId, id) {
+    // kind: 'day_before' | 'same_day' | 'both' ('both' covers a booking made
+    // inside the same-day window — one text stamps both touches, no spam).
+    async markReminderSent(tenantId, id, kind = 'day_before') {
       const row = appointments.find(a => a.id === id && a.tenant_id === tenantId);
-      if (row) row.reminder_sent_at = new Date().toISOString();
+      if (!row) return;
+      const ts = new Date().toISOString();
+      if (kind === 'day_before' || kind === 'both') row.reminder_sent_at = ts;
+      if (kind === 'same_day' || kind === 'both') row.reminder_sameday_sent_at = ts;
+    },
+
+    // Caller's booking history (any outcome except cancelled), newest first —
+    // feeds find_my_appointments' returning-patient summary.
+    async pastAppointments(tenantId, phone, beforeDate, limit = 12) {
+      return appointments
+        .filter(
+          a => a.tenant_id === tenantId && a.phone_number === phone &&
+               a.status !== 'cancelled' && a.date < beforeDate
+        )
+        .sort((a, b) => (b.date + b.time_slot).localeCompare(a.date + a.time_slot))
+        .slice(0, limit);
     },
 
     // Memory store has no tenant table — the engine falls back to its
@@ -285,23 +304,44 @@ function createSupabaseStore() {
     // Broad date-range fetch (inclusive) for services/reminders.js — the
     // poller narrows to the actual send window itself in JS, since "due"
     // depends on the tenant's timezone, not just the calendar date.
+    // "Pending" = either reminder touch still unsent.
     async appointmentsPendingReminder(dateFrom, dateTo) {
       const { data, error } = await supabase
         .from('appointments')
-        .select('id, tenant_id, patient_name, phone_number, test_type, date, time_slot, channel, status')
+        .select('id, tenant_id, patient_name, phone_number, test_type, date, time_slot, channel, status, reminder_sent_at, reminder_sameday_sent_at')
         .eq('status', 'confirmed')
-        .is('reminder_sent_at', null)
+        .or('reminder_sent_at.is.null,reminder_sameday_sent_at.is.null')
         .gte('date', dateFrom).lte('date', dateTo);
       if (error) throw new Error(`Supabase reminder-window select failed: ${error.message}`);
       return data || [];
     },
 
-    async markReminderSent(tenantId, id) {
+    // kind: 'day_before' | 'same_day' | 'both' ('both' covers a booking made
+    // inside the same-day window — one text stamps both touches, no spam).
+    async markReminderSent(tenantId, id, kind = 'day_before') {
+      const ts = new Date().toISOString();
+      const patch = {};
+      if (kind === 'day_before' || kind === 'both') patch.reminder_sent_at = ts;
+      if (kind === 'same_day' || kind === 'both') patch.reminder_sameday_sent_at = ts;
       const { error } = await supabase
         .from('appointments')
-        .update({ reminder_sent_at: new Date().toISOString() })
+        .update(patch)
         .eq('tenant_id', tenantId).eq('id', id);
       if (error) throw new Error(`Supabase reminder mark failed: ${error.message}`);
+    },
+
+    // Caller's booking history (any outcome except cancelled), newest first —
+    // feeds find_my_appointments' returning-patient summary.
+    async pastAppointments(tenantId, phone, beforeDate, limit = 12) {
+      const { data, error } = await supabase
+        .from('appointments')
+        .select('id, test_type, date, time_slot, status')
+        .eq('tenant_id', tenantId).eq('phone_number', phone)
+        .neq('status', 'cancelled').lt('date', beforeDate)
+        .order('date', { ascending: false }).order('time_slot', { ascending: false })
+        .limit(limit);
+      if (error) throw new Error(`Supabase history select failed: ${error.message}`);
+      return data || [];
     },
 
     async getTenantByNumber(number) {

@@ -1425,6 +1425,81 @@ test('reminders: an appointment outside the lead window (or already past) is lef
   assert.equal(tooLate.sent, 0);
 });
 
+test('reminders: two-touch sequence — day-before text with the calendar link, then a short same-day nudge, then silence', async () => {
+  const store = createMemoryStore();
+  const saved = await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'sms', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+  const sent = [];
+  const send = { sendSms: async (to, body, from) => sent.push({ to, body, from }) };
+
+  // 20h before the slot (10:00 EDT = 14:00Z): day-before touch only.
+  const first = await runReminderSweep({
+    store, getTenant: async () => TENANT, send, now: new Date('2026-07-08T18:00:00Z'),
+  });
+  assert.equal(first.sent, 1);
+  assert.match(sent[0].body, /Add to calendar: .*\/calendar\/\d+\.ics/);
+  let row = await store.getAppointmentById(TENANT.id, saved.id);
+  assert.ok(row.reminder_sent_at, 'day-before touch stamped');
+  assert.ok(!row.reminder_sameday_sent_at, 'same-day touch must NOT be stamped yet');
+
+  // 75 min before: the same-day nudge — short, no link.
+  const second = await runReminderSweep({
+    store, getTenant: async () => TENANT, send, now: new Date('2026-07-09T12:45:00Z'),
+  });
+  assert.equal(second.sent, 1);
+  assert.match(sent[1].body, /is today at 10:00/);
+  assert.doesNotMatch(sent[1].body, /\.ics/, 'same-day nudge carries no link');
+  row = await store.getAppointmentById(TENANT.id, saved.id);
+  assert.ok(row.reminder_sameday_sent_at, 'same-day touch stamped');
+
+  // Both touches sent — nothing more, ever.
+  const third = await runReminderSweep({
+    store, getTenant: async () => TENANT, send, now: new Date('2026-07-09T13:00:00Z'),
+  });
+  assert.equal(third.sent, 0);
+  assert.equal(sent.length, 2);
+});
+
+test('reminders: a booking made inside the same-day window gets ONE text stamped as both touches', async () => {
+  const store = createMemoryStore();
+  const saved = await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'sms', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+  const sent = [];
+  // 90 min out, neither touch sent yet — same-day wins, both stamp.
+  const result = await runReminderSweep({
+    store, getTenant: async () => TENANT,
+    send: { sendSms: async (to, body, from) => sent.push({ to, body, from }) },
+    now: new Date('2026-07-09T12:30:00Z'),
+  });
+  assert.equal(result.sent, 1);
+  assert.equal(sent.length, 1);
+  const row = await store.getAppointmentById(TENANT.id, saved.id);
+  assert.ok(row.reminder_sent_at && row.reminder_sameday_sent_at, 'one text, both touches stamped');
+});
+
+test('reminders: an opted-out number receives no reminder texts (TCPA covers system-initiated sends too)', async () => {
+  const store = createMemoryStore();
+  await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'sms', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+  await store.setOptOut(TENANT.id, CALLER, true);
+
+  const result = await runReminderSweep({
+    store, getTenant: async () => TENANT,
+    send: { sendSms: async () => { throw new Error('must not send to an opted-out number'); } },
+    now: new Date('2026-07-09T12:30:00Z'),
+  });
+  assert.equal(result.sent, 0);
+});
+
 test('reminders: a whatsapp-channel booking is reminded over WhatsApp, from the tenant WhatsApp number', async () => {
   const store = createMemoryStore();
   const waTenant = { ...TENANT, whatsappNumber: 'whatsapp:+15550009999' };
@@ -1449,4 +1524,69 @@ test('reminders: a whatsapp-channel booking is reminded over WhatsApp, from the 
   assert.equal(smsSent.length, 0);
   assert.equal(waSent.length, 1);
   assert.equal(waSent[0].from, waTenant.whatsappNumber);
+});
+
+// ══════════════════════════════════════════════════════════════
+// 15. ATTENDANCE + RETURNING-PATIENT HISTORY
+// ══════════════════════════════════════════════════════════════
+test('history: find_my_appointments returns aggregate visit counts for a returning caller, never an itemized log', async () => {
+  const store = createMemoryStore();
+  // Past visits: two attended, one no-show, one cancelled (excluded).
+  const past = [
+    { date: '2026-06-10', status: 'completed' },
+    { date: '2026-07-01', status: 'completed' },
+    { date: '2026-06-20', status: 'no_show' },
+    { date: '2026-06-25', status: 'cancelled' },
+  ];
+  for (const p of past) {
+    await store.insertAppointment({
+      tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+      test_type: 'Blood Draw', date: p.date, time_slot: '09:00',
+      channel: 'voice', status: p.status, created_at: NOW.toISOString(),
+    });
+  }
+  // Plus one upcoming booking.
+  await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: THURSDAY, time_slot: '10:00',
+    channel: 'voice', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  const toolExecutor = createToolHandlers({ store, tenant: TENANT });
+  const result = await toolExecutor.execute('find_my_appointments', {}, {
+    tenant: TENANT, callerPhone: CALLER, now: NOW,
+  });
+
+  assert.equal(result.appointments.length, 1, 'upcoming list is unchanged');
+  assert.deepEqual(result.history, {
+    past_appointments: 3, // cancelled excluded
+    attended: 2,
+    missed: 1,
+    last_attended_date: '2026-07-01',
+  });
+
+  // A first-time caller gets no history block at all.
+  const fresh = await toolExecutor.execute('find_my_appointments', {}, {
+    tenant: TENANT, callerPhone: '+15559990000', now: NOW,
+  });
+  assert.equal(fresh.history, undefined);
+});
+
+test('attendance: updateAppointmentStatus moves confirmed → completed / no_show and out of capacity counts', async () => {
+  const store = createMemoryStore();
+  const saved = await store.insertAppointment({
+    tenant_id: TENANT.id, patient_name: 'Alex', phone_number: CALLER,
+    test_type: 'Lipid Panel', date: '2026-07-03', time_slot: '10:00',
+    channel: 'voice', status: 'confirmed', created_at: NOW.toISOString(),
+  });
+
+  await store.updateAppointmentStatus(TENANT.id, saved.id, 'no_show');
+  assert.equal((await store.getAppointmentById(TENANT.id, saved.id)).status, 'no_show');
+  assert.equal(await store.countBookings(TENANT.id, '2026-07-03', '10:00'), 0,
+    'marked rows stop counting against capacity');
+
+  // And it lands in history as a miss.
+  const history = await store.pastAppointments(TENANT.id, CALLER, '2026-07-04');
+  assert.equal(history.length, 1);
+  assert.equal(history[0].status, 'no_show');
 });

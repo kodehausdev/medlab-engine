@@ -18,7 +18,7 @@ export interface Appointment {
   date: string; // YYYY-MM-DD
   time_slot: string; // HH:MM
   channel: "voice" | "sms" | "whatsapp" | "walk-in";
-  status: "confirmed" | "cancelled" | "completed";
+  status: "confirmed" | "cancelled" | "completed" | "no_show";
   created_at: string;
 }
 
@@ -41,10 +41,13 @@ export function useAppointments(date: string): {
     if (!sb) return;
     let disposed = false;
 
+    // Everything except cancelled: attendance-marked rows (completed /
+    // no_show) stay visible on the grid with a status badge — only a
+    // cancellation actually frees the chair.
     sb.from("appointments")
       .select("*")
       .eq("date", date)
-      .eq("status", "confirmed")
+      .neq("status", "cancelled")
       .order("created_at", { ascending: true })
       .then(({ data, error }) => {
         if (disposed) return;
@@ -64,10 +67,11 @@ export function useAppointments(date: string): {
             }
             const row = payload.new as Appointment;
             const withoutRow = list.filter((a) => a.id !== row.id);
-            // Only confirmed rows belong on the live grid — mirrors the
-            // engine's own capacity count (countBookings only counts
-            // status === 'confirmed').
-            if (row.status !== "confirmed") return { date, rows: withoutRow };
+            // Cancelled rows leave the grid; attendance-marked rows
+            // (completed / no_show) stay, restyled by the chip. Capacity
+            // math stays confirmed-only in the page component, mirroring
+            // the engine's countBookings.
+            if (row.status === "cancelled") return { date, rows: withoutRow };
             return {
               date,
               rows: [...withoutRow, row].sort((a, b) =>

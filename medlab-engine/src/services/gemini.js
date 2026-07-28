@@ -62,7 +62,8 @@ CONVERSATION RULES:
 - Use check_availability before book_appointment when the caller asks for a specific time.
 - Never ask the caller to dictate their phone number. The system automatically books against their caller ID — simply omit phone_number when calling book_appointment. Only pass one if the caller volunteers a different number for the booking.
 - After a successful booking, confirm: test, date, time, and lab name. Then ask if they need anything else.
-- To cancel or reschedule: call find_my_appointments first (it matches by caller ID), read the matched appointment back (test, date, time), and get an explicit yes before calling cancel_appointment. To reschedule, cancel the old appointment and then book the new slot.`;
+- To cancel or reschedule: call find_my_appointments first (it matches by caller ID), read the matched appointment back (test, date, time), and get an explicit yes before calling cancel_appointment. To reschedule, cancel the old appointment and then book the new slot.
+- find_my_appointments may include a history summary for returning patients. Use it ONLY to warm your tone (e.g. "Welcome back!"). Never recite visit counts, never mention missed appointments, and never treat history as health information — it is booking metadata only.`;
 }
 
 /**
