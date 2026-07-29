@@ -17,6 +17,9 @@ const { safeLog } = require('../compliance/hipaa');
 const { containsEmergency, emergencyScript } = require('../compliance/emergency');
 const { pageEmergency: realPageEmergency } = require('../services/notify');
 const { captureDemoLead } = require('../services/leads');
+const { sendSms: realSendSms } = require('../services/twilio');
+const { buildIcsUrl } = require('../services/calendarInvite');
+const { runReminderSweep } = require('../services/reminders');
 const config = require('../config');
 
 const TENANT_CACHE_TTL_MS = 60 * 1000;
@@ -32,6 +35,9 @@ function createEngine(overrides = {}) {
   // Injectable like store/events/generateFn — tests assert paging was
   // attempted without making real Resend/Twilio calls.
   const pageEmergency = overrides.notify || realPageEmergency;
+  // The link texted after a booking (routes/calendar.js). Injectable so
+  // tests can assert a send was attempted without hitting real Twilio.
+  const sendCalendarSms = overrides.sendCalendarSms || realSendSms;
   const sessions = createSessionStore();
   const toolExecutor = createToolHandlers({ store, tenant: defaultTenant, events });
   const gemini = createGeminiEngine({
@@ -113,14 +119,38 @@ function createEngine(overrides = {}) {
   }
 
   async function getTenantById(id) {
-    if (!id || id === defaultTenant.id) return defaultTenant;
+    if (!id) return defaultTenant;
+    // The DB row wins even when the id matches the env default — a console
+    // rename (Settings → lab name) must show up everywhere the tenant is
+    // re-fetched by id (calendar .ics, reminder texts), not just on inbound
+    // number routing. The env tenant is a fallback, never an override.
     try {
-      return await store.getTenantById(id);
+      const row = await store.getTenantById(id);
+      if (row) return row;
     } catch (err) {
       safeLog(`⚠️ tenant lookup failed for id=${id}: ${err.message}`);
-      return null;
     }
+    return id === defaultTenant.id ? defaultTenant : null;
   }
+
+  // Appointment reminder texts (services/reminders.js) — same "just a
+  // setInterval on an already-long-running process" reasoning as the
+  // session sweeper above, no new job-runner infra. Exposed directly too,
+  // the same way sessions.sweep() is, so tests don't have to wait on a
+  // real interval tick.
+  function runReminders(now) {
+    return runReminderSweep({
+      store,
+      getTenant: getTenantById,
+      send: overrides.sendReminder,
+      now: now || overrides.now || new Date(),
+    }).catch((err) => safeLog(`⚠️ reminder sweep failed: ${err.message}`));
+  }
+  const reminderTimer = setInterval(
+    () => runReminders(),
+    config.reminderPollMinutes * 60 * 1000
+  );
+  if (reminderTimer.unref) reminderTimer.unref();
 
   // Sessions are keyed per tenant so the same caller phone talking to two
   // labs never shares conversation state.
@@ -204,17 +234,36 @@ function createEngine(overrides = {}) {
       };
     }
 
-    const { reply, bookedNow } = await gemini.runTurn(session, text, ctx);
+    const { reply, bookedNow, bookingId } = await gemini.runTurn(session, text, ctx);
     if (bookedNow) session.completed = true;
 
     // Proactive AI disclosure on the first text reply of a conversation —
     // deterministic, not left to the model, on every text channel (SMS,
     // WhatsApp). Voice discloses in its greeting instead.
     const disclosed = firstTurn && channel !== 'voice'
-      ? `You're chatting with ${tenant.labName}'s automated AI assistant.\n\n${reply}`
+      ? `You're chatting with Kesa, ${tenant.labName}'s automated AI assistant.\n\n${reply}`
       : reply;
 
-    return { reply: disclosed, bookedNow, session, tenant };
+    // Calendar invite, deterministic (not left to the model to paste a URL
+    // correctly). Text channels get the link appended to the confirmation;
+    // a voice caller can't tap a link mid-call, so they get a follow-up SMS
+    // instead, fire-and-forget — a Twilio hiccup here must never affect the
+    // call itself.
+    let finalReply = disclosed;
+    if (bookedNow && bookingId) {
+      const icsUrl = buildIcsUrl(tenant, { id: bookingId });
+      if (channel === 'voice') {
+        sendCalendarSms(
+          ctx.callerPhone,
+          `Add your ${tenant.labName} appointment to your calendar: ${icsUrl}`,
+          tenant.twilioNumber
+        ).catch(() => {});
+      } else {
+        finalReply = `${disclosed}\n\nAdd to your calendar: ${icsUrl}`;
+      }
+    }
+
+    return { reply: finalReply, bookedNow, session, tenant };
   }
 
   // tenant: the full resolved tenant object (not just its id) — callers
@@ -231,6 +280,7 @@ function createEngine(overrides = {}) {
     endSession,
     resolveTenant,
     getTenantById,
+    runReminderSweep: runReminders,
     ready,
     store,
     tenant: defaultTenant,

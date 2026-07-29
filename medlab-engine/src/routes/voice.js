@@ -20,8 +20,8 @@ function createVoiceRouter({ engine }) {
     // Policy Act posture): the caller hears they've reached an AI before
     // any data is collected.
     const greeting =
-      `Thanks for calling ${tenant.labName}. ` +
-      `I'm an automated A I assistant, and I can book lab appointments — ` +
+      `Thanks for calling ${tenant.labName}. This is Kesa, ` +
+      `an automated A I assistant, and I can book lab appointments — ` +
       `what test do you need, and when?`;
     res.type('text/xml').send(gatherTwiml(greeting, turnUrl));
   });

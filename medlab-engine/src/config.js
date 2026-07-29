@@ -39,6 +39,22 @@ const config = {
     from: process.env.EMERGENCY_ALERT_FROM_EMAIL || '',
   },
 
+  // Signs the .ics calendar-invite links texted to patients (services/
+  // calendarInvite.js) so a guessed booking id alone can't pull another
+  // patient's name/test/time. Falls back to the Twilio auth token (already
+  // a private secret every deployed instance has) rather than forcing a new
+  // required env var; the hardcoded fallback only matters for local dev with
+  // neither set.
+  calendarTokenSecret:
+    process.env.CALENDAR_TOKEN_SECRET || process.env.TWILIO_AUTH_TOKEN || 'dev-insecure-calendar-secret-change-me',
+
+  // Two-touch reminder schedule: a day-before text (REMINDER_LEAD_HOURS
+  // before the slot) plus a short same-day nudge (REMINDER_SAMEDAY_LEAD_HOURS
+  // before). The poller checks for appointments entering either window.
+  reminderLeadHours: Number(process.env.REMINDER_LEAD_HOURS || 24),
+  reminderSamedayLeadHours: Number(process.env.REMINDER_SAMEDAY_LEAD_HOURS || 2),
+  reminderPollMinutes: Number(process.env.REMINDER_POLL_MINUTES || 15),
+
   tenant: {
     id: process.env.TENANT_ID || 'default',
     labName: process.env.LAB_NAME || 'MedLab',

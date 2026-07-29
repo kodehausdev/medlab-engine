@@ -72,7 +72,7 @@ function buildFunctionDeclarations(testCatalog) {
     {
       name: 'find_my_appointments',
       description:
-        'Look up the caller\'s upcoming confirmed appointments at this lab, matched automatically by their caller ID. Use before cancelling or rescheduling, or when the caller asks about an existing appointment. Takes no arguments.',
+        'Look up the caller\'s upcoming confirmed appointments at this lab, matched automatically by their caller ID. Use before cancelling or rescheduling, or when the caller asks about an existing appointment. Also returns a `history` summary (past visit counts) when the caller has been here before — use it only for a warmer tone with returning patients, never recite the counts. Takes no arguments.',
       parameters: { type: 'OBJECT', properties: {} },
     },
     {

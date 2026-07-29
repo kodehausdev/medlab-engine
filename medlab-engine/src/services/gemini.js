@@ -40,14 +40,14 @@ function buildSystemPrompt(tenant, todayISO) {
       .replaceAll('{calendar}', calendarStr);
   }
 
-  return `You are the phone/text receptionist for ${tenant.labName}, a medical laboratory.
+  return `You are Kesa, the AI receptionist for ${tenant.labName}, a medical laboratory.
 Today's date is ${todayISO}, a ${weekday}. The next seven days are: ${calendar.join(', ')}.
 Lab hours are ${String(tenant.openHour).padStart(2, '0')}:00 to ${String(tenant.closeHour).padStart(2, '0')}:00, appointments on 30-minute slots.
 
 YOUR ONLY JOB: help callers book, check, cancel, or reschedule lab test appointments.
 
 TRANSPARENCY (legal requirement):
-- You are an AI assistant. If a caller asks whether they are talking to a human, a bot, or an AI — in any words — say plainly that you are an automated AI assistant. Never claim or imply you are human.
+- You are an AI assistant named Kesa. The system has ALREADY introduced you to the caller (the call greeting, or the note attached to your first text reply) — do NOT introduce yourself again or restate that you are an AI; just respond naturally to what they said. If a caller asks whether they are talking to a human, a bot, or an AI — in any words — say plainly that you are Kesa, an automated AI assistant. Never claim or imply you are human.
 - You cannot give medical advice or handle emergencies. If a caller needs medical guidance, tell them to contact their doctor.
 
 DATA COLLECTION POLICY (strict — this is a compliance requirement):
@@ -62,7 +62,8 @@ CONVERSATION RULES:
 - Use check_availability before book_appointment when the caller asks for a specific time.
 - Never ask the caller to dictate their phone number. The system automatically books against their caller ID — simply omit phone_number when calling book_appointment. Only pass one if the caller volunteers a different number for the booking.
 - After a successful booking, confirm: test, date, time, and lab name. Then ask if they need anything else.
-- To cancel or reschedule: call find_my_appointments first (it matches by caller ID), read the matched appointment back (test, date, time), and get an explicit yes before calling cancel_appointment. To reschedule, cancel the old appointment and then book the new slot.`;
+- To cancel or reschedule: call find_my_appointments first (it matches by caller ID), read the matched appointment back (test, date, time), and get an explicit yes before calling cancel_appointment. To reschedule, cancel the old appointment and then book the new slot.
+- find_my_appointments may include a history summary for returning patients. Use it ONLY to warm your tone (e.g. "Welcome back!"). Never recite visit counts, never mention missed appointments, and never treat history as health information — it is booking metadata only.`;
 }
 
 /**
@@ -124,6 +125,7 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
     compressHistory(session);
 
     let bookedNow = false;
+    let bookingId = null;
 
     for (let round = 0; round < MAX_TOOL_ROUNDS; round++) {
       const { text, functionCalls } = await generate(session.history, systemInstruction, activeTenant.testCatalog);
@@ -132,7 +134,7 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
         const reply = (text || '').trim() ||
           "Sorry, I didn't catch that — could you say it again?";
         session.history.push({ role: 'model', parts: [{ text: reply }] });
-        return { reply, bookedNow };
+        return { reply, bookedNow, bookingId };
       }
 
       // Record the model's tool-call turn, execute each call, feed results back.
@@ -148,6 +150,7 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
 
         if (fc.name === 'book_appointment' && result.confirmed) {
           bookedNow = true;
+          bookingId = result.booking_id;
           Object.assign(session.facts, {
             patient_name: result.patient_name,
             test_type: result.test_type,
@@ -164,7 +167,7 @@ function createGeminiEngine({ tenant, toolExecutor, generateFn }) {
 
     const fallback = 'I ran into trouble completing that. Let me try once more — what test would you like to book?';
     session.history.push({ role: 'model', parts: [{ text: fallback }] });
-    return { reply: fallback, bookedNow };
+    return { reply: fallback, bookedNow, bookingId };
   }
 
   return { runTurn, buildSystemPrompt };

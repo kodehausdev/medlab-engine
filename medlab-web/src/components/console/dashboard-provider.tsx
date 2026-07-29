@@ -172,6 +172,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     };
 
     let cleanupRealtime: (() => void) | null = null;
+    let resyncTimer: ReturnType<typeof setInterval> | null = null;
 
     // The deployed engine requires a Supabase user token (?token= because
     // EventSource can't set headers). Keyless dev sends none — the engine
@@ -187,23 +188,21 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
       const scope = qs.size ? `?${qs.toString()}` : "";
       es = new EventSource(`${ENGINE_URL}/api/dashboard/events${scope}`);
 
-      es.onopen = async () => {
-      try {
+      // Shared by the initial onopen handshake and the periodic resync
+      // below — both just want the engine's authoritative counters/recent
+      // snapshot merged in. Returns false on failure so callers can decide
+      // whether that means "never adopted" (fall back) or "transient
+      // hiccup, try again next tick" (periodic resync).
+      const syncState = async () => {
         const res = await fetch(`${ENGINE_URL}/api/dashboard/state${scope}`);
         // 404 = this tenant has no line provisioned on the engine.
-        if (!res.ok) {
-          fallBackToDb();
-          return;
-        }
+        if (!res.ok) return false;
         const state: EngineState = await res.json();
-        if (disposed) return;
+        if (disposed) return true;
         setEngineTenant(state.tenant);
 
         // Belt and braces: never adopt a feed for a different tenant.
-        if (authTenant && state.tenant.id !== authTenant.id) {
-          fallBackToDb();
-          return;
-        }
+        if (authTenant && state.tenant.id !== authTenant.id) return false;
 
         setCounters(state.counters);
         watermark.current = Math.max(
@@ -215,12 +214,23 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
           const byId = new Map([...state.recent, ...prev].map((e) => [e.id, e]));
           return [...byId.values()].sort((a, b) => eventSeq(b) - eventSeq(a));
         });
-        engineAdopted = true;
-        setStatus("engine-live");
-      } catch {
-        fallBackToDb();
-      }
-    };
+        return true;
+      };
+
+      es.onopen = async () => {
+        try {
+          const ok = await syncState();
+          if (disposed) return;
+          if (!ok) {
+            fallBackToDb();
+            return;
+          }
+          engineAdopted = true;
+          setStatus("engine-live");
+        } catch {
+          fallBackToDb();
+        }
+      };
 
       es.onmessage = (m) => {
         try {
@@ -235,6 +245,19 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
         // (Once adopted, EventSource auto-reconnects and onopen re-syncs.)
         if (!engineAdopted) fallBackToDb();
       };
+
+      // Belt and braces beyond onerror/reconnect: a proxy can drop an SSE
+      // stream without the browser ever noticing (no error, no reconnect —
+      // it just goes quiet), leaving counters/feed frozen on a connection
+      // that looks "engine-live" but isn't. Re-pull the authoritative
+      // snapshot on a timer so staleness can't survive more than a tick,
+      // independent of whether the stream itself is still healthy.
+      resyncTimer = setInterval(() => {
+        if (disposed || dbMode || !engineAdopted) return;
+        syncState().catch(() => {
+          /* transient — next tick tries again */
+        });
+      }, 20000);
     };
 
     void setup();
@@ -242,6 +265,7 @@ export function DashboardProvider({ children }: { children: ReactNode }) {
     return () => {
       disposed = true;
       es?.close();
+      if (resyncTimer) clearInterval(resyncTimer);
       if (cleanupRealtime) cleanupRealtime();
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
