@@ -98,6 +98,20 @@ async function postForm(port, path, fields) {
   return { status: res.status, body: await res.text() };
 }
 
+// /webhook/voice/turn now answers instantly with a filler + <Redirect> and
+// does the real Gemini/tool-call work on the redirect target — mirrors what
+// Twilio actually does (follow the Redirect, re-posting From/CallSid/To).
+async function postVoiceTurn(port, fields) {
+  const first = await postForm(port, '/webhook/voice/turn', fields);
+  const match = first.body.match(/<Redirect[^>]*>([^<]+)<\/Redirect>/);
+  if (!match) return first;
+  const raw = match[1].replace(/&amp;/g, '&');
+  // PUBLIC_BASE_URL may be an absolute (e.g. ngrok) URL in dev .env — the
+  // real target is always this same test server, so keep only path+query.
+  const { pathname, search } = new URL(raw, `http://127.0.0.1:${port}`);
+  return postForm(port, `${pathname}${search}`, fields);
+}
+
 async function getPath(port, path) {
   const res = await fetch(`http://127.0.0.1:${port}${path}`);
   return { status: res.status, body: await res.text() };
@@ -133,7 +147,7 @@ test('voice: full booking flow returns confirmation TwiML and persists a clean r
     assert.match(greet.body, /BrightPath Diagnostics/);
 
     // Caller speaks the scenario utterance
-    const turn = await postForm(port, '/webhook/voice/turn', {
+    const turn = await postVoiceTurn(port, {
       From: CALLER,
       CallSid: 'CA1',
       SpeechResult: ALEX_UTTERANCE,
@@ -490,7 +504,7 @@ test('dashboard: booking flow streams call.answered + booking.confirmed over SSE
     assert.match(sse.headers.get('content-type'), /^text\/event-stream/);
     const reader = sse.body.getReader();
 
-    await postForm(port, '/webhook/voice/turn', {
+    await postVoiceTurn(port, {
       From: CALLER, CallSid: 'CA_sse', SpeechResult: ALEX_UTTERANCE,
     });
 
@@ -893,7 +907,7 @@ test('emergency: voice route speaks the redirect and hangs up — no Gather loop
   const bundle = createApp({ engine });
   const { server, port } = await startServer(bundle);
   try {
-    const turn = await postForm(port, '/webhook/voice/turn', {
+    const turn = await postVoiceTurn(port, {
       From: CALLER, CallSid: 'CA_emerg', SpeechResult: 'I think my husband is having a stroke',
     });
     assert.equal(turn.status, 200);

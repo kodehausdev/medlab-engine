@@ -112,13 +112,32 @@ function escapeXml(s) {
  * the SpeechResult to `actionUrl`.
  */
 function gatherTwiml(text, actionUrl) {
+  const action = escapeXml(actionUrl);
+  // timeout="10" (Twilio's speech default is 5s) so a normal thinking-pause
+  // after a reply doesn't trip a hangup. One retry before actually giving
+  // up — the first version hung up on the very first unheard turn, which
+  // reads as "no one's there" if the caller just paused a beat too long.
   return `<?xml version="1.0" encoding="UTF-8"?>
 <Response>
-  <Gather input="speech" action="${escapeXml(actionUrl)}" method="POST" speechTimeout="auto" language="en-US">
+  <Gather input="speech" action="${action}" method="POST" speechTimeout="auto" timeout="10" language="en-US">
     <Say voice="Google.en-US-Neural2-C">${escapeXml(text)}</Say>
   </Gather>
-  <Say voice="Google.en-US-Neural2-C">I didn't hear anything. Goodbye.</Say>
+  <Gather input="speech" action="${action}" method="POST" speechTimeout="auto" timeout="10" language="en-US">
+    <Say voice="Google.en-US-Neural2-C">Sorry, I didn't catch that — go ahead, I'm listening.</Say>
+  </Gather>
+  <Say voice="Google.en-US-Neural2-C">I'm having trouble hearing you on this line. Please call back when you're somewhere clearer. Goodbye.</Say>
   <Hangup/>
+</Response>`;
+}
+
+/** TwiML: brief spoken filler then hand off to a slower endpoint that does
+ *  the real work — Twilio can't play anything while a webhook is still
+ *  computing, so a bare Gemini+tool-call turn is otherwise dead silence. */
+function fillerRedirectTwiml(redirectUrl) {
+  return `<?xml version="1.0" encoding="UTF-8"?>
+<Response>
+  <Say voice="Google.en-US-Neural2-C">One moment.</Say>
+  <Redirect method="POST">${escapeXml(redirectUrl)}</Redirect>
 </Response>`;
 }
 
@@ -141,4 +160,4 @@ function streamTwiml(wsUrl) {
 </Response>`;
 }
 
-module.exports = { sendWhatsApp, sendSms, gatherTwiml, sayHangupTwiml, streamTwiml };
+module.exports = { sendWhatsApp, sendSms, gatherTwiml, sayHangupTwiml, streamTwiml, fillerRedirectTwiml };
